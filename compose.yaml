@@ -1,0 +1,23 @@
+name: drone-onestop
+
+services:
+  web:
+    build: .
+    ports:
+      - "${BIND_ADDRESS:-0.0.0.0}:${PORT:-7175}:7175"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "7175"
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

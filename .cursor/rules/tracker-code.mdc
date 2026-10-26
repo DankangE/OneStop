@@ -1,0 +1,21 @@
+---
+description: Coding conventions for the tracker web app, REST API, and harness
+globs: tracker/**/*.{js,mjs,css,html,json}
+alwaysApply: false
+---
+
+# Tracker code conventions
+
+- Node >= 22, ES modules, **no runtime dependencies**. Use `node:test` for tests.
+- API paths and payloads mirror Jira REST v3 (`/rest/api/3/...`). Errors always use
+  `{ "errorMessages": [], "errors": {} }` via `ApiError` from `lib/store.js`.
+- Domain rules live in `lib/` (workflow, store, jql, adf). `server.mjs` only routes.
+- The UI builds DOM with `h()` from `public/views.js`; never assign user text to `innerHTML`.
+- UI copy is Korean, sentence-style, and names actions by what they do ("완료 처리").
+- Every behavior change needs a test in `tracker/tests/` and must pass `npm run verify`.
+
+```js
+// ❌ throw new Error('bad transition');
+// ✅
+throw new ApiError(400, [`Transition id '${id}' is not valid for this issue.`]);
+```

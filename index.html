@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#141816" />
+  <title>AIRFRAME — Flight Club</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="arcade.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141816'/%3E%3Cpath d='m9 9 14 14M9 23 23 9' stroke='%23ff895b' stroke-width='3'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <svg class="icon-library" aria-hidden="true">
+    <symbol id="i-drone" viewBox="0 0 32 32"><path d="m10 10 12 12M10 22 22 10"/><circle cx="7" cy="7" r="5"/><circle cx="25" cy="7" r="5"/><circle cx="7" cy="25" r="5"/><circle cx="25" cy="25" r="5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 7h12a3 3 0 1 0-3-3M2 11h17a3 3 0 1 1-3 3M4 16h5a3 3 0 1 1-3 3"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="m10 4-5 5H2v6h3l5 5V4Zm5 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-muted" viewBox="0 0 24 24"><path d="m10 4-5 5H2v6h3l5 5V4Zm5 5 7 7m0-7-7 7"/></symbol>
+  </svg>
+  <div class="app-shell">
+    <header class="site-header">
+      <a class="brand" href="./"><svg><use href="#i-drone"/></svg><span>AIRFRAME<sup>®</sup></span><small>FLIGHT CLUB</small></a>
+      <nav aria-label="메인 메뉴"><button class="nav-button active" id="nav-arcade">플레이그라운드</button><button class="nav-button" id="nav-field">트레이닝</button><button class="nav-button" id="nav-guide">조종 가이드</button><button class="nav-button" id="nav-records">비행 기록 <span id="record-count">00</span></button></nav>
+      <div class="pilot-profile"><i></i><span>READY TO FLY</span><b>P<small>01</small></b></div>
+    </header>
+
+    <main>
+      <div class="page-intro"><div><span class="eyebrow">THE SKY IS YOUR PLAYGROUND.</span><h1>비행의 감각, 게임이 되다<span>.</span></h1><p>120초. 두 개의 월드. 끝없이 높아지는 당신의 기록.</p></div><div class="lab-status"><span class="status-light"></span><span>AF–01 / SKY RUSH<small>ARCADE FLIGHT EXPERIENCE</small></span><button id="about-button" aria-label="시뮬레이터 안내">ⓘ</button></div></div>
+
+      <div class="simulator-layout" id="simulator">
+        <aside class="training-panel" aria-label="훈련 설정">
+          <div id="arcade-options">
+            <div class="panel-heading"><span class="eyebrow">CHOOSE YOUR PLAYGROUND</span><span class="small-tag">02 WORLDS</span></div>
+            <h2>오늘은 어디로?</h2>
+            <div class="map-list" role="group" aria-label="아케이드 맵 선택">
+              <button class="map-card selected" data-map="city" aria-pressed="true"><div class="map-art city-art"><svg viewBox="0 0 110 100" aria-hidden="true"><circle cx="88" cy="18" r="10" fill="#fff5ad"/><path d="M0 72 110 41v59H0Z" fill="#8bb6d1"/><path d="m8 44 20-7v39L8 83Z" fill="#5e94b9"/><path d="m28 37 13 6v38l-13-5Z" fill="#b9e5f3"/><path d="m47 27 22-8v45l-22 9Z" fill="#ffc397"/><path d="m69 19 14 7v43l-14-5Z" fill="#ff9670"/><path d="m84 52 17-6v33l-17 7Z" fill="#97d5da"/><ellipse cx="49" cy="73" rx="13" ry="19" stroke="#ff803b" stroke-width="3" transform="rotate(15 49 73)"/></svg><span>01</span></div><div><small>URBAN EXPLORER</small><b>스카이라인</b><span>햇살 가득한 도시 비행</span><em>입문 · 빌딩과 도로</em></div><i>↗</i></button>
+              <button class="map-card" data-map="forest" aria-pressed="false"><div class="map-art forest-art"><svg viewBox="0 0 110 100" aria-hidden="true"><path d="M0 65 110 42v58H0Z" fill="#78c999"/><path d="M49 100 70 62 56 35 77 0" stroke="#aae9ff" stroke-width="12"/><path d="M10 74v-29m24 16V30m53 55V58" stroke="#b78f5d" stroke-width="3"/><path d="M-2 51 11 18l15 33ZM20 37 34 3l15 34ZM72 66l16-37 16 37Z" fill="#39a775"/><path d="M3 42 11 18l10 24ZM25 27 34 3l10 24ZM78 55l10-26 11 26Z" fill="#99de83"/></svg><span>02</span></div><div><small>INTO THE GREEN</small><b>포레스트 런</b><span>나무 사이, 짜릿한 한 바퀴</span><em>중급 · 나무와 바위</em></div><i>↗</i></button>
+            </div>
+            <div class="arcade-rules"><div><span class="rule-ring">◯</span><span>링 통과</span><b>+100</b></div><div><span class="rule-crystal">◆</span><span>크리스털 수집</span><b>+25</b></div><div><span class="rule-combo">↗</span><span>12초 내 연속 링</span><b>최대 ×3</b></div></div>
+            <div class="arcade-rules-extra"><span>✛ 공중 표적</span><b>+150</b></div><div class="personal-best"><span>PERSONAL BEST</span><strong id="personal-best">000000</strong></div>
+            <p class="one-life">120 SECONDS. YOUR BEST RUN. <b>실드 3개로 출격.</b></p>
+          </div>
+          <div id="training-options" hidden>
+          <div class="panel-heading"><span class="eyebrow">YOUR FLIGHT PATH</span><span class="small-tag">BASIC 01—04</span></div>
+          <h2>오늘의 비행 수업</h2>
+          <div class="lesson-list" role="group" aria-label="훈련 선택">
+            <button class="lesson selected" data-lesson="hover" aria-pressed="true"><span class="lesson-number">01</span><span><b>이륙과 호버링</b><small>한 지점에 안정적으로 머무르기</small></span><span class="lesson-status">↗</span></button>
+            <button class="lesson" data-lesson="attitude" aria-pressed="false"><span class="lesson-number">02</span><span><b>자세와 방향 제어</b><small>롤 · 피치 · 요의 감각 익히기</small></span><span class="lesson-status">↗</span></button>
+            <button class="lesson" data-lesson="square" aria-pressed="false"><span class="lesson-number">03</span><span><b>사각 경로 비행</b><small>이동하고, 제동하고, 정지하기</small></span><span class="lesson-status">↗</span></button>
+            <button class="lesson" data-lesson="landing" aria-pressed="false"><span class="lesson-number">04</span><span><b>정밀 착륙</b><small>마지막 순간까지 부드럽게</small></span><span class="lesson-status">↗</span></button>
+          </div>
+          <button class="free-flight" id="free-flight"><span>∞</span> 자유 연습 <span>OPEN PRACTICE ↗</span></button>
+          </div>
+          <div id="arcade-settings" class="rush-settings">
+            <div class="rush-mode"><span class="live-dot"></span><div><b>스코어 어택</b><small>120초 · 정밀 조준 · 오버드라이브</small></div><span>SOLO</span></div>
+            <label for="sensitivity">마우스 감도 <span>느리게 — 빠르게</span></label>
+            <input id="sensitivity" type="range" min="0.5" max="2" step="0.25" value="1" aria-label="마우스 감도" />
+            <p>링 중앙을 빠르게 통과하고 표적을 격파하세요.<br>게이지를 채우면 8초간 오버드라이브!</p>
+          </div>
+          <div class="settings">
+            <div class="setting-label"><label for="mode-select">비행 보조</label><span id="mode-code">POS</span></div>
+            <select id="mode-select"><option value="position">위치 보조 · 입문</option><option value="attitude">자세 모드 · 중급</option><option value="manual">수동 추력 · 심화</option></select>
+            <p class="setting-explanation" id="mode-description">손을 떼면 위치와 고도를 유지합니다. 처음 비행할 때 추천해요.</p>
+            <div class="setting-label wind-heading"><span>바람</span><label class="checkbox-label"><input id="gust-toggle" type="checkbox"/> 돌풍</label></div>
+            <div class="wind-options" role="group" aria-label="풍속"><button data-wind="0" class="selected" aria-pressed="true">무풍 <small>0</small></button><button data-wind="1.5" aria-pressed="false">약풍 <small>1.5</small></button><button data-wind="3" aria-pressed="false">보통 <small>3.0</small></button></div>
+          </div>
+          <button class="primary-button" id="start-button" disabled><span>훈련장 준비 중</span><svg><use href="#i-arrow"/></svg></button>
+          <div class="start-note" id="start-note">키보드 조종 · 설치 없이 브라우저에서</div>
+        </aside>
+
+        <section class="flight-workspace" aria-label="실시간 비행 시뮬레이터">
+          <div class="flight-toolbar"><div class="field-name"><span class="field-index" id="field-index">01</span><span id="field-title">스카이라인 <small>CITY PLAYGROUND</small></span></div><div class="camera-buttons" role="group" aria-label="카메라 시점"><button data-camera="chase" class="selected" aria-pressed="true">추적</button><button data-camera="fpv" aria-pressed="false">FPV</button><button data-camera="observer" aria-pressed="false">관찰</button><kbd>C</kbd></div><button class="icon-button" id="fullscreen-button" aria-label="전체 화면"><svg><use href="#i-expand"/></svg></button></div>
+          <div class="flight-stage" id="flight-stage">
+            <canvas id="world" aria-label="3차원 드론 비행 훈련장"></canvas>
+            <div class="scene-vignette"></div>
+            <div class="view-topline"><span id="flight-status"><i></i> PRE-FLIGHT</span><div class="compass"><span id="heading-left">W</span><b id="heading-value">000°</b><span id="heading-right">E</span><i></i></div><span id="flight-time">00:00</span></div>
+            <div class="arcade-scoreboard" id="arcade-scoreboard"><span>YOUR SCORE</span><strong id="score-value">000000</strong><div><b id="combo-value">×1</b><span id="arcade-counts">LAP 01 · ◆ 0</span></div><div class="combo-track"><i id="combo-timer"></i></div></div>
+            <div id="rush-hud">
+              <div class="overdrive-panel" id="overdrive-panel"><div><span>OVERDRIVE</span><b id="overdrive-value">0%</b></div><div class="overdrive-track"><i id="overdrive-fill"></i></div><small id="overdrive-caption">링 · 표적 · 크리스털로 충전</small></div>
+              <div class="speed-dial"><strong id="rush-speed">0</strong><span>KM/H</span><b id="speed-state">CRUISE</b></div>
+              <div id="ring-direction" hidden><b>↑</b><span>NEXT RING</span><small></small></div>
+              <div id="aim-label" hidden>TARGET</div>
+              <div class="combat-flash" id="combat-flash" aria-hidden="true"></div>
+              <div class="action-feed" id="action-feed" aria-live="off"></div>
+              <div class="rush-crosshair" id="crosshair" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+              <div class="rush-resources"><div class="shield-status"><span>SHIELD</span><b id="hull-value">◆◆◆</b></div><div class="boost-status"><div><span>BOOST <kbd>SHIFT</kbd></span><b id="energy-value">100%</b></div><div class="resource-track"><i id="energy-fill"></i></div></div><div class="weapon-status"><div><span id="weapon-state">PULSE / READY</span><span>✛ <b id="target-count">00</b></span></div><div class="resource-track heat-track"><i id="heat-fill"></i></div></div></div>
+              <div class="boost-lines" aria-hidden="true"></div>
+              <div id="mouse-hint" hidden>화면 클릭 → 마우스 조준 <span>좌클릭 발사 · 우클릭 정밀 조준</span></div>
+              <div class="touch-controls"><div class="touch-stick" data-stick="move" aria-label="이동 스틱"><i></i><span>MOVE</span></div><div class="touch-actions"><button data-flight-button="up" aria-label="상승">Q ↑</button><button data-flight-button="down" aria-label="하강">E ↓</button><button data-flight-button="brake">제동</button><button data-flight-button="boost">부스트</button><button data-flight-button="fire" class="touch-fire">발사 ✛</button></div><div class="touch-stick" data-stick="aim" aria-label="조준 스틱"><i></i><span>LOOK</span></div></div>
+            </div>
+            <div id="launch-countdown" hidden><span>GET READY TO FLY</span><b>3</b><small>WASD 이동 · Q/E 고도 · SHIFT 부스트</small></div>
+            <div class="score-popup" id="score-popup" role="status"></div>
+            <div class="mission-overlay"><div><span class="eyebrow" id="mission-kicker">01 / TAKEOFF & HOVER</span><strong id="mission-title">이륙과 호버링</strong></div><span id="progress-value">0%</span><div class="mission-progress"><i id="progress-bar"></i></div><p id="mission-objective">고도 5m · 반경 1.5m 안에서 10초간 안정적으로 유지</p></div>
+            <div class="target-label" id="target-label"><span>◎</span><b id="target-label-text">TARGET / 5.0 M</b></div>
+            <div class="standby-note" id="standby-note"><span>READY WHEN YOU ARE.</span><strong>첫 비행은, 천천히.</strong><p>왼쪽에서 훈련을 시작하세요.<br>주황색 영역이 오늘의 목표입니다.</p></div>
+            <div class="horizon-instrument"><div class="horizon-dial"><div class="horizon-attitude" id="horizon-attitude"><div></div><i></i><span>― &nbsp; ―<br>― &nbsp; ―</span></div><div class="horizon-wings">━ ━</div></div><span>ATTITUDE</span><b id="tilt-label">P 0° <i>/</i> R 0°</b></div>
+            <div class="mini-map"><div><span>POSITION</span><span>N ↑</span></div><canvas id="minimap" width="280" height="240" aria-label="현재 위치와 목표 위치를 보여주는 평면도"></canvas><span id="position-label">X 0.0 &nbsp; Z 0.0 m</span></div>
+            <div class="flight-notice" id="flight-notice" hidden></div>
+            <div class="coach-message" id="coach-message"><span>FLIGHT COACH</span><p id="coach-text">W는 상승, 방향키 ↑는 기수를 숙여 전진합니다.</p></div>
+            <div class="telemetry"><div><span>ALTITUDE</span><strong id="altitude-value">0.0<small>m</small></strong><em>현재 고도</em></div><div><span>GROUND SPEED</span><strong id="speed-value">0.0<small>m/s</small></strong><em>수평 속도</em></div><div><span>VERTICAL SPEED</span><strong id="vertical-value">0.0<small>m/s</small></strong><em>상승 / 하강</em></div><div class="throttle-metric"><span>THRUST</span><strong id="throttle-value">0<small>%</small></strong><div class="throttle-track"><i id="throttle-fill"></i><b title="수평 호버 추력 약 43%"></b></div></div><button id="sound-button" class="icon-button" aria-label="모터 소리 켜기" aria-pressed="false"><svg><use href="#i-muted"/></svg></button></div>
+            <div class="scene-loading" id="scene-loading"><svg><use href="#i-drone"/></svg><span>훈련장을 준비하고 있습니다.</span></div>
+          </div>
+          <div class="flight-controlbar"><span><i></i><b id="active-mode">POSITION ASSIST</b><span id="wind-readout">WIND 0.0 m/s</span></span><div><button id="pause-button" disabled>일시정지 <kbd>ESC</kbd></button><button id="reset-button" disabled>다시 시작 <kbd>R</kbd></button><button id="end-button" disabled>비행 종료 ↗</button></div></div>
+        </section>
+      </div>
+
+      <section class="learning-deck" aria-label="비행 학습 도구">
+        <div class="input-panel"><div class="deck-heading"><span class="eyebrow">CONTROL INPUT</span><button id="controls-button">전체 키 보기 ↗</button></div><div id="arcade-controls" class="rush-controls"><div><kbd>W A S D</kbd><span>전후 · 좌우 이동</span></div><div><kbd>MOUSE</kbd><span>시점 · 우클릭 정밀 조준</span></div><div><kbd>Q / E</kbd><span>상승 · 하강</span></div><div><kbd>CLICK / F</kbd><span>펄스 발사</span></div><div><kbd>SHIFT</kbd><span>부스트</span></div><div><kbd>SPACE</kbd><span>급제동</span></div></div><div class="control-inputs"><div class="stick-unit"><div class="stick-pad"><i id="left-stick"></i><span></span></div><span>THROTTLE / YAW</span></div><div class="stick-unit"><div class="stick-pad"><i id="right-stick"></i><span></span></div><span>PITCH / ROLL</span></div><div class="key-legend"><div><kbd data-key="KeyW">W</kbd><kbd data-key="KeyS">S</kbd><span>상승 · 하강</span></div><div><kbd data-key="KeyA">A</kbd><kbd data-key="KeyD">D</kbd><span>기수 회전</span></div><div><kbd data-key="ArrowUp">↑</kbd><kbd data-key="ArrowDown">↓</kbd><kbd data-key="ArrowLeft">←</kbd><kbd data-key="ArrowRight">→</kbd><span>기체 기울이기</span></div></div></div></div>
+        <div class="trend-panel"><div class="deck-heading"><span class="eyebrow">ALTITUDE TRACE</span><span id="trace-target">TARGET 5.0 m</span></div><canvas id="altitude-chart" aria-label="최근 30초의 고도 변화"></canvas><div class="chart-labels"><span>−30 SEC</span><span>NOW</span></div></div>
+        <div class="lesson-tip"><span class="eyebrow">ONE THING AT A TIME</span><h3 id="tip-title">키를 놓는 것도, 조종입니다.</h3><p id="tip-body">목표 고도에 도착하기 조금 전에 W를 놓아보세요. 기체의 관성과 제동 거리를 느끼는 것이 첫걸음입니다.</p><div><kbd>SHIFT</kbd> 미세 조종 <span>·</span><kbd>SPACE</kbd> 누르는 동안 위치 보조</div></div>
+      </section>
+    </main>
+    <footer><span>FIND YOUR LINE. ENJOY THE FLIGHT.</span><p>조종 원리를 익히는 교육용 모델 · 특정 기체의 비행 특성을 재현한 인증 시뮬레이터는 아닙니다.</p><span>FLIGHT CLUB <i></i> v0.4</span></footer>
+  </div>
+  <dialog id="info-dialog"><div class="dialog-top"><span class="eyebrow" id="dialog-kicker"></span><button class="icon-button" id="dialog-close" aria-label="닫기"><svg><use href="#i-close"/></svg></button></div><div id="dialog-content"></div></dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <script type="importmap">
+    { "imports": { "three": "./node_modules/three/build/three.module.js" } }
+  </script>
+  <script type="module" src="app.js"></script>
+  <script>if(location.protocol==='file:'){document.getElementById('scene-loading').textContent='터미널에서 npm start 실행 후 http://127.0.0.1:7175 으로 접속하세요.';}</script>
+</body>
+</html>

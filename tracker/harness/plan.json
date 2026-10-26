@@ -1,0 +1,1198 @@
+{
+  "project": "OS",
+  "roles": {
+    "owner": "u-haneul",
+    "analyst": "u-seoyeon",
+    "builder": "u-agent",
+    "reviewer": "u-doyun"
+  },
+  "epics": [
+    {
+      "id": "env",
+      "summary": "역공학 작업 환경 구축",
+      "description": "REA MCP, 클린룸 규칙, 에이전트 스킬, 공개 명세를 갖춰 Jira 동작을 안전하게 재구성할 수 있게 한다.",
+      "tickets": [
+        {
+          "id": "env-mcp",
+          "type": "Task",
+          "summary": "REA와 context7 MCP 서버를 프로젝트에 등록",
+          "priority": "High",
+          "labels": [
+            "mcp",
+            "env"
+          ],
+          "verify": [
+            "node",
+            "harness/checks.mjs",
+            "mcp"
+          ]
+        },
+        {
+          "id": "env-rules",
+          "type": "Task",
+          "summary": "클린룸 역공학 규칙과 트래커 코드 규칙 작성",
+          "labels": [
+            "rules",
+            "env"
+          ],
+          "verify": [
+            "node",
+            "harness/checks.mjs",
+            "rules"
+          ]
+        },
+        {
+          "id": "env-skills",
+          "type": "Task",
+          "summary": "명세 추출·티켓 처리 에이전트 스킬 작성",
+          "labels": [
+            "skills",
+            "env"
+          ],
+          "verify": [
+            "node",
+            "harness/checks.mjs",
+            "skills"
+          ]
+        },
+        {
+          "id": "env-spec",
+          "type": "Story",
+          "summary": "Jira Cloud REST v3 공개 명세를 클린룸 명세서로 정리",
+          "priority": "High",
+          "labels": [
+            "spec"
+          ],
+          "verify": [
+            "node",
+            "harness/checks.mjs",
+            "spec"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "summary": "이슈 트래커 핵심 API",
+      "description": "Jira REST v3와 같은 요청·응답 형태로 이슈, 워크플로, 댓글, JQL 검색을 제공한다.",
+      "tickets": [
+        {
+          "id": "api-crud",
+          "type": "Story",
+          "summary": "이슈 생성·조회·수정·삭제 API",
+          "priority": "Highest",
+          "labels": [
+            "api"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "tests/store.test.js"
+          ]
+        },
+        {
+          "id": "api-workflow",
+          "type": "Story",
+          "summary": "워크플로 전이와 변경 이력",
+          "priority": "High",
+          "labels": [
+            "api",
+            "workflow"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "tests/store.test.js"
+          ],
+          "subtasks": [
+            {
+              "id": "api-workflow-guard",
+              "summary": "하위 작업이 열려 있으면 상위 완료 차단 (409)",
+              "verify": [
+                "node",
+                "--test",
+                "--test-name-pattern=subtasks are open",
+                "tests/store.test.js"
+              ]
+            },
+            {
+              "id": "api-workflow-resolution",
+              "summary": "완료 시 해결 상태 기록, 다시 열면 해제",
+              "verify": [
+                "node",
+                "--test",
+                "--test-name-pattern=defined transitions",
+                "tests/store.test.js"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "api-jql",
+          "type": "Story",
+          "summary": "JQL 부분 집합 검색과 nextPageToken 페이지네이션",
+          "labels": [
+            "api",
+            "jql"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "tests/jql.test.js"
+          ]
+        },
+        {
+          "id": "api-errors",
+          "type": "Story",
+          "summary": "errorMessages/errors 오류 형식과 상태 코드",
+          "labels": [
+            "api"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "tests/server.test.js"
+          ]
+        },
+        {
+          "id": "api-bug-tempfile",
+          "type": "Bug",
+          "summary": "저장소 인스턴스 둘이 같은 임시 파일 이름을 써서 저장이 실패함",
+          "priority": "High",
+          "labels": [
+            "persistence"
+          ],
+          "description": "같은 프로세스에서 저장소를 두 번 열면 db.json.<pid>.tmp를 공유해 rename이 ENOENT로 실패했다. 쓰기마다 고유한 임시 파일 이름을 쓰도록 고친다.",
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern=persists",
+            "tests/store.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ui",
+      "summary": "웹 화면",
+      "description": "보드, 목록, 상세 패널, 생성 대화상자로 이슈를 티켓 단위로 처리한다.",
+      "tickets": [
+        {
+          "id": "ui-board",
+          "type": "Story",
+          "summary": "칸반 보드와 드래그로 상태 전이",
+          "priority": "High",
+          "labels": [
+            "ui"
+          ],
+          "verify": [
+            "node",
+            "--check",
+            "public/app.js"
+          ]
+        },
+        {
+          "id": "ui-detail",
+          "type": "Story",
+          "summary": "이슈 상세 패널 (필드 편집, 전이, 댓글, 이력)",
+          "labels": [
+            "ui"
+          ],
+          "verify": [
+            "node",
+            "--check",
+            "public/views.js"
+          ]
+        },
+        {
+          "id": "ui-list",
+          "type": "Story",
+          "summary": "JQL 목록 화면",
+          "labels": [
+            "ui",
+            "jql"
+          ],
+          "verify": [
+            "node",
+            "--check",
+            "public/views.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "harness",
+      "summary": "AI 하네스와 오케스트레이션",
+      "description": "계획 파일에서 이슈와 티켓을 만들고, 역할별 담당자가 검증 명령을 통과시킨 티켓만 완료한다.",
+      "tickets": [
+        {
+          "id": "harness-runner",
+          "type": "Task",
+          "summary": "계획 기반 이슈→티켓→처리 실행기",
+          "priority": "High",
+          "labels": [
+            "harness"
+          ],
+          "verify": [
+            "node",
+            "--check",
+            "harness/run.mjs"
+          ]
+        },
+        {
+          "id": "harness-smoke",
+          "type": "Task",
+          "summary": "임시 저장소에서 도는 smoke 시나리오",
+          "labels": [
+            "harness"
+          ],
+          "verify": [
+            "node",
+            "harness/run.mjs",
+            "--scenario",
+            "smoke",
+            "--quiet"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next",
+      "summary": "다음 단계: 애자일 기능",
+      "description": "Jira Software의 보드·스프린트 개념과 협업 기능. jira-spec-extraction 스킬로 명세부터 작성한다.",
+      "tickets": [
+        {
+          "id": "next-sprint",
+          "type": "Story",
+          "summary": "스프린트 생성·시작·종료와 백로그 화면",
+          "priority": "High",
+          "labels": [
+            "agile"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "tests/agile.test.js",
+            "tests/server.test.js"
+          ]
+        },
+        {
+          "id": "next-links",
+          "type": "Story",
+          "summary": "이슈 링크 (blocks, relates to)",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "next-auth"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "tests/links.test.js"
+          ]
+        },
+        {
+          "id": "next-auth",
+          "type": "Story",
+          "summary": "API 토큰 인증과 프로젝트 권한",
+          "priority": "High",
+          "labels": [
+            "security"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "tests/access.test.js"
+          ]
+        },
+        {
+          "id": "next-dnd-order",
+          "type": "Bug",
+          "summary": "보드 열 안에서 카드 순서(랭크)가 저장되지 않음",
+          "labels": [
+            "ui"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "tests/ui-rank.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "summary": "프로젝트별 작업자·보드",
+      "description": "여러 프로젝트를 만들고 고르며, 프로젝트마다 멤버(역할)·보드·백로그·스프린트를 따로 둔다. 근거는 spec의 프로젝트·프로젝트 역할·담당 가능 사용자·보드 목록 절.",
+      "tickets": [
+        {
+          "id": "projects-create",
+          "type": "Story",
+          "summary": "프로젝트 만들기(사이트 관리자)와 프로젝트마다 보드 자동 생성",
+          "priority": "High",
+          "labels": [
+            "api",
+            "projects"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "create projects|single-project data",
+            "tests/projects.test.js"
+          ]
+        },
+        {
+          "id": "projects-roles",
+          "type": "Story",
+          "summary": "프로젝트 역할로 작업자 관리 (관리자·멤버·보기 전용)",
+          "priority": "High",
+          "labels": [
+            "api",
+            "security",
+            "projects"
+          ],
+          "blockedBy": [
+            "projects-create"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "role actors|follow the project",
+            "tests/projects.test.js",
+            "tests/access.test.js"
+          ]
+        },
+        {
+          "id": "projects-scope",
+          "type": "Story",
+          "summary": "담당자·상위 항목·랭크·스프린트를 프로젝트 안으로 제한",
+          "labels": [
+            "agile",
+            "projects"
+          ],
+          "blockedBy": [
+            "projects-roles"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "stay inside one project",
+            "tests/projects.test.js",
+            "tests/agile.test.js"
+          ]
+        },
+        {
+          "id": "projects-ui",
+          "type": "Story",
+          "summary": "프로젝트 전환기, 멤버 화면, 새 프로젝트 대화상자",
+          "labels": [
+            "ui",
+            "projects"
+          ],
+          "blockedBy": [
+            "projects-scope"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "Jira shapes",
+            "tests/projects.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "project-admin",
+      "summary": "프로젝트 관리 화면",
+      "description": "프로젝트 세부 정보 수정, 보관·복원, 휴지통·영구 삭제. 근거는 spec의 '프로젝트 설정과 수명 주기' 절.",
+      "tickets": [
+        {
+          "id": "admin-update",
+          "type": "Story",
+          "summary": "프로젝트 이름·리드·설명·URL·기본 담당자 수정",
+          "priority": "High",
+          "labels": [
+            "api",
+            "projects"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "edit details",
+            "tests/projects.test.js"
+          ]
+        },
+        {
+          "id": "admin-lifecycle",
+          "type": "Story",
+          "summary": "프로젝트 보관·휴지통·복원 (사이트 관리자)",
+          "priority": "High",
+          "labels": [
+            "api",
+            "security",
+            "projects"
+          ],
+          "blockedBy": [
+            "admin-update"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "restores them",
+            "tests/projects.test.js"
+          ]
+        },
+        {
+          "id": "admin-purge",
+          "type": "Story",
+          "summary": "휴지통 프로젝트 영구 삭제 (이슈·보드·스프린트·링크 정리)",
+          "labels": [
+            "api",
+            "projects"
+          ],
+          "blockedBy": [
+            "admin-lifecycle"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "permanent delete",
+            "tests/projects.test.js"
+          ]
+        },
+        {
+          "id": "admin-ui",
+          "type": "Story",
+          "summary": "프로젝트 관리 목록과 프로젝트 설정 화면",
+          "labels": [
+            "ui",
+            "projects"
+          ],
+          "blockedBy": [
+            "admin-purge"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "Jira shapes",
+            "tests/projects.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "permissions",
+      "summary": "세분화된 권한 구성표",
+      "description": "프로젝트별 권한 구성표: 역할·특정 사람·리드·보고자·담당자에게 권한 부여, 댓글 수정·삭제 권한. 근거는 spec의 '권한 구성표'와 '댓글' 절.",
+      "tickets": [
+        {
+          "id": "perm-scheme",
+          "type": "Story",
+          "summary": "프로젝트별 권한 구성표와 기본 부여",
+          "priority": "High",
+          "labels": [
+            "api",
+            "security"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "reproduces the role table",
+            "tests/permissions.test.js"
+          ]
+        },
+        {
+          "id": "perm-holders",
+          "type": "Story",
+          "summary": "사람·리드·보고자·담당자 holder와 이슈 단위 판단",
+          "priority": "High",
+          "labels": [
+            "api",
+            "security"
+          ],
+          "blockedBy": [
+            "perm-scheme"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "one user, the reporter",
+            "tests/permissions.test.js"
+          ]
+        },
+        {
+          "id": "perm-guard",
+          "type": "Task",
+          "summary": "부여 검증과 관리자 잠금 방지",
+          "labels": [
+            "api",
+            "security"
+          ],
+          "blockedBy": [
+            "perm-holders"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "lock itself out",
+            "tests/permissions.test.js"
+          ]
+        },
+        {
+          "id": "perm-comments",
+          "type": "Story",
+          "summary": "댓글 수정·삭제와 내 댓글/모든 댓글 권한",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "perm-scheme"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "own and all comment",
+            "tests/permissions.test.js"
+          ]
+        },
+        {
+          "id": "perm-ui",
+          "type": "Story",
+          "summary": "권한 매트릭스 화면과 사람별 권한 확인",
+          "labels": [
+            "ui",
+            "security"
+          ],
+          "blockedBy": [
+            "perm-guard",
+            "perm-comments"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "permission scheme and comment endpoints",
+            "tests/permissions.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hierarchy-ui",
+      "summary": "보드·목록 가독성과 상위·하위 토글",
+      "description": "카드 정보 정리(마감, 레이블, 막힘, 하위 진행률), 하위 작업 접기, 에픽·담당자별 묶기, 목록 트리와 펼치기/접기.",
+      "tickets": [
+        {
+          "id": "tree-model",
+          "type": "Task",
+          "summary": "이슈 트리·묶기·마감 계산 모듈",
+          "labels": [
+            "ui"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "list tree nests",
+            "tests/ui-tree.test.js"
+          ]
+        },
+        {
+          "id": "board-cards",
+          "type": "Story",
+          "summary": "보드 카드 재구성과 하위 작업 토글",
+          "priority": "High",
+          "labels": [
+            "ui"
+          ],
+          "blockedBy": [
+            "tree-model"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "child progress",
+            "tests/ui-tree.test.js"
+          ]
+        },
+        {
+          "id": "board-lanes",
+          "type": "Story",
+          "summary": "에픽별·담당자별 스윔레인 접기",
+          "labels": [
+            "ui"
+          ],
+          "blockedBy": [
+            "board-cards"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "board lanes group",
+            "tests/ui-tree.test.js"
+          ]
+        },
+        {
+          "id": "list-tree",
+          "type": "Story",
+          "summary": "목록 계층 보기와 펼치기/접기",
+          "priority": "High",
+          "labels": [
+            "ui"
+          ],
+          "blockedBy": [
+            "tree-model"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "due dates",
+            "tests/ui-tree.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calendar",
+      "summary": "캘린더 보기",
+      "description": "시작일 필드, JQL 크기 비교, 월간 달력과 사람별 일정, 끌어서 일정 옮기기. 근거는 spec의 '시작일과 캘린더' 절(내부 정의).",
+      "tickets": [
+        {
+          "id": "cal-startdate",
+          "type": "Story",
+          "summary": "이슈 시작일 필드와 JQL 크기 비교",
+          "priority": "High",
+          "labels": [
+            "api",
+            "calendar"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "start dates are validated",
+            "tests/ui-calendar.test.js"
+          ]
+        },
+        {
+          "id": "cal-model",
+          "type": "Task",
+          "summary": "달력 격자·막대 줄 배치·사람별 묶기 계산",
+          "labels": [
+            "ui",
+            "calendar"
+          ],
+          "blockedBy": [
+            "cal-startdate"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "stacked into lanes",
+            "tests/ui-calendar.test.js"
+          ]
+        },
+        {
+          "id": "cal-month",
+          "type": "Story",
+          "summary": "월간 달력 화면과 날짜에서 이슈 만들기",
+          "priority": "High",
+          "labels": [
+            "ui",
+            "calendar"
+          ],
+          "blockedBy": [
+            "cal-model"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "month grids start on Sunday",
+            "tests/ui-calendar.test.js"
+          ]
+        },
+        {
+          "id": "cal-people",
+          "type": "Story",
+          "summary": "사람별 일정(누가 어느 날 일하는지)과 부하 표시",
+          "priority": "High",
+          "labels": [
+            "ui",
+            "calendar"
+          ],
+          "blockedBy": [
+            "cal-model"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "people rows keep project members",
+            "tests/ui-calendar.test.js"
+          ]
+        },
+        {
+          "id": "cal-move",
+          "type": "Story",
+          "summary": "막대를 끌어 일정 옮기기",
+          "labels": [
+            "ui",
+            "calendar"
+          ],
+          "blockedBy": [
+            "cal-month",
+            "cal-people"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "dragging a bar keeps its length",
+            "tests/ui-calendar.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "teams",
+      "summary": "팀과 부관리자",
+      "description": "프로젝트 단위 팀, 부관리자 역할, MANAGE_TEAMS 권한, 캘린더 팀 필터. 근거는 spec의 '프로젝트 팀' 절(내부 정의).",
+      "tickets": [
+        {
+          "id": "team-role",
+          "type": "Story",
+          "summary": "부관리자 역할과 팀 관리 권한",
+          "priority": "High",
+          "labels": [
+            "api",
+            "permissions"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "deputy administrators cannot change",
+            "tests/teams.test.js"
+          ]
+        },
+        {
+          "id": "team-api",
+          "type": "Story",
+          "summary": "프로젝트 팀 만들기·수정·삭제 API",
+          "priority": "High",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "team-role"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "administrators and deputy administrators manage teams",
+            "tests/teams.test.js"
+          ]
+        },
+        {
+          "id": "team-upgrade",
+          "type": "Task",
+          "summary": "기존 권한 구성표에 부관리자·팀 권한 한 번만 반영",
+          "labels": [
+            "api",
+            "permissions"
+          ],
+          "blockedBy": [
+            "team-role"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "existing permission schemes gain",
+            "tests/teams.test.js"
+          ]
+        },
+        {
+          "id": "team-filter",
+          "type": "Story",
+          "summary": "캘린더 담당자 필터에서 팀 단위로 고르기",
+          "labels": [
+            "ui",
+            "calendar"
+          ],
+          "blockedBy": [
+            "team-api"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "a team chip selects all",
+            "tests/teams.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "multi-assign",
+      "summary": "여러 명·팀 담당",
+      "description": "이슈 담당자에 여러 사람과 팀 전체를 넣는다. 근거는 spec의 '여러 명·팀 배정' 절(내부 정의).",
+      "tickets": [
+        {
+          "id": "ma-api",
+          "type": "Story",
+          "summary": "이슈 assignees·team 필드와 실제 담당자 합집합",
+          "priority": "High",
+          "labels": [
+            "api"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "assigned to several people and a whole team",
+            "tests/teams.test.js"
+          ]
+        },
+        {
+          "id": "ma-compat",
+          "type": "Task",
+          "summary": "Jira assignee 수정과의 호환과 검증 오류",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "ma-api"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "setting the Jira assignee replaces",
+            "tests/teams.test.js"
+          ]
+        },
+        {
+          "id": "ma-team-delete",
+          "type": "Task",
+          "summary": "팀 삭제 시 배정 해제와 이력",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "ma-api"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "deleting a team unassigns",
+            "tests/teams.test.js"
+          ]
+        },
+        {
+          "id": "ma-ui",
+          "type": "Story",
+          "summary": "이슈 만들기·상세의 팀/여러 명 담당자 선택과 캘린더 반영",
+          "priority": "High",
+          "labels": [
+            "ui"
+          ],
+          "blockedBy": [
+            "ma-api"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "team-assigned issue on every member row",
+            "tests/teams.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "login",
+      "summary": "비밀번호 로그인",
+      "description": "작업자 선택 대신 이메일·비밀번호로 로그인한다. 근거는 spec의 '비밀번호 로그인' 절(내부 정의, J3에는 Basic 인증만 있음).",
+      "tickets": [
+        {
+          "id": "login-setup",
+          "type": "Story",
+          "summary": "처음 설정 코드로 사이트 관리자 비밀번호 정하기",
+          "priority": "Highest",
+          "labels": [
+            "api",
+            "security"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "first setup needs the console code",
+            "tests/login.test.js"
+          ]
+        },
+        {
+          "id": "login-session",
+          "type": "Story",
+          "summary": "세션 쿠키 로그인, 임시 비밀번호, 강제 변경, 로그아웃",
+          "priority": "Highest",
+          "labels": [
+            "api",
+            "security"
+          ],
+          "blockedBy": [
+            "login-setup"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "temporary passwords, forced change",
+            "tests/login.test.js"
+          ]
+        },
+        {
+          "id": "login-header",
+          "type": "Bug",
+          "summary": "X-Tracker-User 헤더만으로 다른 사람 행세 막기",
+          "priority": "Highest",
+          "labels": [
+            "security"
+          ],
+          "blockedBy": [
+            "login-session"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "user header alone no longer",
+            "tests/login.test.js"
+          ]
+        },
+        {
+          "id": "login-csrf",
+          "type": "Bug",
+          "summary": "다른 Origin·JSON 아닌 쓰기와 DNS 리바인딩 차단",
+          "priority": "High",
+          "labels": [
+            "security"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "cross-origin and non-JSON writes",
+            "tests/login.test.js"
+          ]
+        },
+        {
+          "id": "login-lockout",
+          "type": "Task",
+          "summary": "로그인 5회 실패 시 1분 잠금",
+          "labels": [
+            "security"
+          ],
+          "blockedBy": [
+            "login-session"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "locked for a minute",
+            "tests/login.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "people-files-home",
+      "summary": "사용자 관리, 첨부파일, 홈",
+      "description": "사이트 관리자의 사용자 추가·비활성화, 이슈 첨부파일, 홈 대시보드. 근거는 spec의 '사용자 만들기와 비활성화', '첨부파일', '홈' 절.",
+      "tickets": [
+        {
+          "id": "pfh-users",
+          "type": "Story",
+          "summary": "사용자 추가(임시 비밀번호)와 비활성화",
+          "priority": "Highest",
+          "labels": [
+            "api",
+            "security"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "site admins create users",
+            "tests/people-files.test.js"
+          ]
+        },
+        {
+          "id": "pfh-users-api",
+          "type": "Task",
+          "summary": "POST /rest/api/3/user 와 사용자 목록 권한",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "pfh-users"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "POST /rest/api/3/user returns",
+            "tests/people-files.test.js"
+          ]
+        },
+        {
+          "id": "pfh-attach",
+          "type": "Story",
+          "summary": "첨부 업로드·내려받기·삭제 권한",
+          "priority": "High",
+          "labels": [
+            "api",
+            "security"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "attachments upload with the XSRF header",
+            "tests/people-files.test.js"
+          ]
+        },
+        {
+          "id": "pfh-attach-files",
+          "type": "Task",
+          "summary": "첨부 파일 저장 위치와 이슈 삭제 시 정리",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "pfh-attach"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "attachment files live next to the data file",
+            "tests/people-files.test.js"
+          ]
+        },
+        {
+          "id": "pfh-attach-scheme",
+          "type": "Task",
+          "summary": "기존 프로젝트에 첨부 권한 한 번만 추가",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "pfh-attach"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "old data gets attachment permissions once",
+            "tests/people-files.test.js"
+          ]
+        },
+        {
+          "id": "pfh-home",
+          "type": "Story",
+          "summary": "홈 대시보드: 내 할 일·기한·프로젝트 현황",
+          "priority": "High",
+          "labels": [
+            "ui"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "home summary sorts my work",
+            "tests/people-files.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "archive",
+      "summary": "완료 이슈 정리",
+      "description": "오래된 완료 이슈를 보드에서 접고 Jira archive API로 보관한다. 근거는 spec의 '이슈 보관' 절.",
+      "tickets": [
+        {
+          "id": "arc-store",
+          "type": "Story",
+          "summary": "이슈 보관·해제와 검색 제외, 보관 중 수정 금지",
+          "priority": "High",
+          "labels": [
+            "api"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "archiving hides issues from search",
+            "tests/archive.test.js"
+          ]
+        },
+        {
+          "id": "arc-api",
+          "type": "Task",
+          "summary": "PUT /issue/archive·unarchive 응답 모양과 보관 목록",
+          "labels": [
+            "api"
+          ],
+          "blockedBy": [
+            "arc-store"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "follow the Jira shape",
+            "tests/archive.test.js"
+          ]
+        },
+        {
+          "id": "arc-board",
+          "type": "Story",
+          "summary": "보드 완료 열에서 14일 지난 완료 접기",
+          "labels": [
+            "ui"
+          ],
+          "verify": [
+            "node",
+            "--test",
+            "--test-name-pattern",
+            "finished before the cutoff",
+            "tests/archive.test.js"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OneStop 트래커</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6v12H3zM10.5 6h4.5v8h-4.5zM16.5 6H21v4h-4.5z"/></svg>OneStop 트래커</a>
+    <div id="project-switch" class="project-switch"></div>
+    <nav aria-label="보기 전환">
+      <a href="#/home" data-nav="home">홈</a>
+      <a href="#/board" data-nav="board">보드</a>
+      <a href="#/backlog" data-nav="backlog">백로그</a>
+      <a href="#/list" data-nav="list">목록</a>
+      <a href="#/calendar" data-nav="calendar">캘린더</a>
+      <a href="#/members" data-nav="members">멤버</a>
+      <a href="#/permissions" data-nav="permissions" hidden>권한</a>
+      <a href="#/settings" data-nav="settings" hidden>설정</a>
+      <a href="#/users" data-nav="users" hidden>사용자</a>
+    </nav>
+    <span class="spacer"></span>
+    <div id="account" class="account"></div>
+    <button class="button primary" id="create-open" type="button" title="단축키 C" hidden>이슈 만들기</button>
+  </header>
+
+  <div class="layout">
+    <main id="main" aria-live="polite"></main>
+    <div id="drawer" hidden></div>
+  </div>
+
+  <dialog id="create-dialog" aria-labelledby="create-title">
+    <form id="create-form" class="dialog-form" method="dialog">
+      <h2 id="create-title">이슈 만들기</h2>
+      <div class="grid">
+        <label>유형<select name="issuetype"></select></label>
+        <label>상위 항목<select name="parent"></select></label>
+        <label class="wide">요약<input name="summary" required maxlength="255" autocomplete="off" placeholder="한 줄로 무엇을 할지 적어 주세요"></label>
+        <label class="wide">설명<textarea name="description" rows="4" placeholder="배경, 기대 결과, 확인 방법"></textarea></label>
+        <label>우선순위<select name="priority"></select></label>
+        <label>시작일<input type="date" name="startdate"></label>
+        <label>기한<input type="date" name="duedate"></label>
+        <div class="wide field"><span id="create-assignee-label">담당자</span><div class="assignee-slot" role="group" aria-labelledby="create-assignee-label"></div></div>
+        <label class="wide">레이블<input name="labels" autocomplete="off" placeholder="공백으로 구분 (예: api ui)"></label>
+      </div>
+      <p class="form-error" role="alert"></p>
+      <footer>
+        <button class="button ghost" type="button" id="create-cancel">취소</button>
+        <button class="button primary" type="submit">만들기</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="aux-dialog"></dialog>
+
+  <div id="toast" role="status" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

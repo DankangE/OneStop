@@ -1,0 +1,14 @@
+---
+description: Use context7 as the source of truth for library and Jira API facts in this repository
+alwaysApply: true
+---
+
+# Sources of truth
+
+- Look up library, framework, and Jira API facts with the context7 MCP before relying on memory.
+  - Jira REST v3: `/websites/developer_atlassian_cloud_jira_platform_rest_v3`
+  - REA: `/morluto/rea`
+- Cite the context7 library ID next to any fact added to `tracker/spec/`.
+- If context7 has no answer, say so (`관련 정보가 없습니다.`) and mark the choice as
+  `내부 정의` instead of presenting it as Jira behavior.
+- Answer the user in Korean.

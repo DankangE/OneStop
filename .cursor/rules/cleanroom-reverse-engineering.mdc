@@ -1,0 +1,34 @@
+---
+description: Clean-room boundaries for reverse engineering Jira behavior into the tracker. Applies when analyzing products, writing specs, or using REA.
+globs: tracker/**
+alwaysApply: false
+---
+
+# Clean-room reverse engineering
+
+The tracker reproduces Jira *behavior*, never Jira *code or assets*.
+
+## Allowed sources
+- Public Jira Cloud REST API v3 documentation, fetched through context7
+  (`/websites/developer_atlassian_cloud_jira_platform_rest_v3`).
+- Observations of request/response shapes from an instance you are licensed to use,
+  captured by REA `inspect-web-page` with `--include-json-body-shapes` (shapes only).
+- Our own black-box tests against `tracker/`.
+
+## Forbidden
+- Decompiling, deobfuscating, or exporting Atlassian scripts (`export-web-scripts`,
+  `recover-javascript-sources`) and pasting any of that code, CSS, icons, or copy here.
+- Storing captured tokens, cookies, storage values, or customer data. REA warns that
+  accessibility text, console text, and script content can contain secrets.
+- Using a target the operator is not authorized to analyze.
+
+## Process
+1. Write the observed behavior into `tracker/spec/jira-rest-v3.md` with its source.
+2. Implement from the spec only. A second agent session should do the implementation
+   when the first one looked at captures.
+3. Mark anything inferred rather than documented as `내부 정의` in the spec.
+
+```text
+❌ "Copied the board drag handler from the captured bundle."
+✅ "Spec §Transitions: POST /transitions returns 204; board calls it on drop."
+```

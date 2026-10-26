@@ -1,0 +1,20 @@
+{
+  "name": "airframe-flight-club",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check server.mjs && node --check app.js && node --check sim/physics.js && node --check sim/training.js && node --check sim/scene.js && node --check sim/arcade.js && node --check sim/arcade-flight.js && node --check sim/arcade-input.js && node --check sim/rush.js && node --check sim/rush-scene.js && node --check sim/maps.js && node --check sim/collision.js && node --check sim/arcade-scene.js",
+    "deploy": "docker compose up -d --build --wait",
+    "logs": "docker compose logs --tail=100 -f web",
+    "stop": "docker compose down"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  }
+}

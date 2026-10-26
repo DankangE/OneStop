@@ -1,0 +1,11 @@
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!server.mjs
+!index.html
+!styles.css
+!arcade.css
+!app.js
+!sim/
+!sim/**
