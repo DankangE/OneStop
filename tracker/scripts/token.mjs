@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { loadStore } from '../lib/store.js';
 
 const tracker = fileURLToPath(new URL('..', import.meta.url));
-const file = process.env.TRACKER_DATA || join(tracker, 'data', 'db.json');
+const file = process.env.TRACKER_DATA || join(tracker, 'data', 'tracker.sqlite');
 const [command, email, ...rest] = process.argv.slice(2);
 const usage = 'Usage: npm run token -- create <email> [label] | list <email> | revoke <email> <token-id>\nStop the tracker server first; it overwrites the data file with its own copy.';
 

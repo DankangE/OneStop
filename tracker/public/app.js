@@ -3,6 +3,7 @@ import { h, renderBoard, renderList, renderDetail, renderBacklog, renderLogin, r
 import { homeSummary } from './home.js';
 import { groupLanes, recentDoneDays, isStaleDone } from './tree.js';
 import { localToday, shiftMonth, peopleOf, toDay, fromDay } from './calendar.js';
+import { resolvedTheme, toggledTheme } from './theme.js';
 
 const state = {
   authMode: 'none',
@@ -74,6 +75,37 @@ const backlogLink = document.querySelector('[data-nav=backlog]');
 const settingsLink = document.querySelector('[data-nav=settings]');
 const permissionsLink = document.querySelector('[data-nav=permissions]');
 const usersLink = document.querySelector('[data-nav=users]');
+const sidenav = document.querySelector('#sidenav');
+const navToggle = document.querySelector('#nav-toggle');
+const navBackdrop = document.querySelector('#nav-backdrop');
+const themeToggle = document.querySelector('#theme-toggle');
+const themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+function paintThemeToggle() {
+  const dark = resolvedTheme(document.documentElement.dataset.theme, themeQuery.matches) === 'dark';
+  themeToggle.textContent = dark ? '라이트' : '다크';
+  themeToggle.title = dark ? '라이트 모드로 전환' : '다크 모드로 전환';
+  themeToggle.setAttribute('aria-pressed', String(dark));
+}
+
+paintThemeToggle();
+themeToggle.addEventListener('click', () => {
+  const next = toggledTheme(resolvedTheme(document.documentElement.dataset.theme, themeQuery.matches));
+  document.documentElement.dataset.theme = next;
+  savePref('theme', next);
+  paintThemeToggle();
+});
+themeQuery.addEventListener('change', () => {
+  if (!document.documentElement.dataset.theme) paintThemeToggle();
+});
+
+function setNavOpen(open) {
+  const next = Boolean(open);
+  sidenav.classList.toggle('open', next);
+  document.body.classList.toggle('nav-open', next);
+  navToggle.setAttribute('aria-expanded', String(next));
+  navBackdrop.hidden = !next;
+}
 
 const toPerms = report => Object.fromEntries(Object.values(report.permissions).map(p => [p.key, p.havePermission]));
 const projectKey = () => state.project?.key;
@@ -954,6 +986,7 @@ form.addEventListener('submit', async event => {
 
 function showAuth(props) {
   state.meta = null;
+  setNavOpen(false);
   document.body.classList.add('signed-out');
   drawer.hidden = true;
   if (dialog.open) dialog.close();
@@ -1067,7 +1100,20 @@ async function start() {
 
 document.querySelector('#create-cancel').addEventListener('click', () => dialog.close());
 createButton.addEventListener('click', () => openCreate());
+navToggle.addEventListener('click', () => setNavOpen(!sidenav.classList.contains('open')));
+navBackdrop.addEventListener('click', () => setNavOpen(false));
+sidenav.addEventListener('click', event => {
+  if (event.target.closest('a')) setNavOpen(false);
+});
+window.matchMedia('(max-width: 900px)').addEventListener('change', event => {
+  if (!event.matches) setNavOpen(false);
+});
+
 document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && sidenav.classList.contains('open')) {
+    setNavOpen(false);
+    return;
+  }
   if (!state.meta || event.target.closest('input, textarea, select, dialog')) return;
   if (event.key === 'c') { event.preventDefault(); openCreate(); }
   if (event.key === 'Escape' && state.detail) closeIssue();

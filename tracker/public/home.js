@@ -4,6 +4,11 @@ const priorityRank = { Highest: 5, High: 4, Medium: 3, Low: 2, Lowest: 1 };
 const isDone = issue => issue.fields.status.statusCategory.key === 'done';
 const due = issue => issue.fields.duedate ?? null;
 
+export function donutRatio(value, total) {
+  if (!total || value <= 0) return 0;
+  return Math.min(1, value / total);
+}
+
 export function byUrgency(a, b) {
   const [da, db] = [due(a), due(b)];
   if (da !== db) return da == null ? 1 : db == null ? -1 : da < db ? -1 : 1;

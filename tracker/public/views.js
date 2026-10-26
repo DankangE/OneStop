@@ -1,4 +1,5 @@
 import { adfToText } from './api.js';
+import { donutRatio } from './home.js';
 import { buildTree, flattenTree, parentKeys, childProgress, dueState, isStaleDone, recentDoneDays } from './tree.js';
 import { monthWeeks, monthDays, layoutRange, spans, byPerson, busyDays, toDay, fromDay, weekday, assigneeChoices, chosenIds, pickAssignees, teamIds, teamPicked, toggleTeam } from './calendar.js';
 
@@ -1245,8 +1246,8 @@ function homeRow(issue, { onOpen, showProject }) {
       showProject ? null : whoStack(f)));
 }
 
-function homeCard({ title, hint, issues, empty, onOpen, limit = 8, tone, showProject = false }) {
-  return h('section', { class: `home-card${tone ? ` ${tone}` : ''}` },
+function homeCard({ title, hint, issues, empty, onOpen, limit = 8, tone, showProject = false, feature = false }) {
+  return h('section', { class: `home-card${feature ? ' feature' : ''}${tone ? ` ${tone}` : ''}` },
     h('header', {},
       h('h2', {}, title),
       h('span', { class: 'count' }, issues.length),
@@ -1257,20 +1258,69 @@ function homeCard({ title, hint, issues, empty, onOpen, limit = 8, tone, showPro
     issues.length > limit ? h('p', { class: 'muted small home-more' }, `외 ${issues.length - limit}개`) : null);
 }
 
+const svgNs = 'http://www.w3.org/2000/svg';
+
+function donutSvg(ratio, tone) {
+  const svg = document.createElementNS(svgNs, 'svg');
+  svg.setAttribute('viewBox', '0 0 36 36');
+  svg.setAttribute('class', 'donut');
+  svg.setAttribute('aria-hidden', 'true');
+  const circle = (cls, attrs) => {
+    const node = document.createElementNS(svgNs, 'circle');
+    node.setAttribute('cx', '18');
+    node.setAttribute('cy', '18');
+    node.setAttribute('r', '14');
+    node.setAttribute('fill', 'none');
+    node.setAttribute('stroke-width', '3.5');
+    node.setAttribute('class', cls);
+    for (const [name, value] of Object.entries(attrs)) node.setAttribute(name, value);
+    return node;
+  };
+  svg.append(circle('donut-track', {}));
+  if (ratio > 0) {
+    const length = 2 * Math.PI * 14;
+    svg.append(circle(`donut-arc ${tone}`, {
+      'stroke-linecap': ratio >= 1 ? 'butt' : 'round',
+      'stroke-dasharray': `${(length * ratio).toFixed(3)} ${length.toFixed(3)}`,
+      transform: 'rotate(-90 18 18)'
+    }));
+  }
+  return svg;
+}
+
+function homeDonut({ value, total, label, tone }) {
+  const ratio = donutRatio(value, total);
+  return h('div', {
+    class: `home-donut ${tone}`,
+    role: 'img',
+    'aria-label': total ? `${label} ${value}개, 열린 이슈 ${total}개 중` : `${label} ${value}개`
+  },
+  h('div', { class: 'donut-face' }, donutSvg(ratio, tone), h('strong', {}, value)),
+  h('span', { class: 'donut-copy' },
+    h('span', { class: 'donut-label' }, label),
+    h('span', { class: 'muted small' }, total ? `열린 이슈 ${total}개 중` : '열린 이슈 없음')));
+}
+
 export function renderHome({ summary, me, onOpen, onProject }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? '좋은 아침입니다' : hour < 18 ? '좋은 오후입니다' : '수고 많으셨습니다';
-  const stat = (value, label, tone) => h('div', { class: `home-stat${tone ? ` ${tone}` : ''}` }, h('strong', {}, value), h('span', {}, label));
+  const open = summary.counts.open;
   return h('div', { class: 'home' },
     h('header', { class: 'home-head' },
-      h('h1', {}, `${greeting}, ${me.displayName}님`),
-      h('div', { class: 'home-stats' },
-        stat(summary.counts.mine, '내 할 일'),
-        stat(summary.overdue.length, '기한 지남', summary.overdue.length ? 'late' : ''),
-        stat(summary.soon.length, '7일 안 마감'),
-        stat(summary.counts.doneThisWeek, '최근 7일 완료', 'good'))),
+      h('div', {},
+        h('p', { class: 'home-kicker' }, '대시보드'),
+        h('h1', {}, `${greeting}, ${me.displayName}님`)),
+      h('div', { class: 'home-donuts' },
+        homeDonut({ value: summary.counts.mine, total: open, label: '내 할 일', tone: 'mine' }),
+        homeDonut({ value: summary.overdue.length, total: open, label: '기한 지남', tone: 'late' }),
+        homeDonut({ value: summary.soon.length, total: open, label: '7일 안 마감', tone: 'soon' }),
+        h('div', { class: 'home-donut good', role: 'img', 'aria-label': `최근 7일 완료 ${summary.counts.doneThisWeek}개` },
+          h('div', { class: 'donut-face plain' }, h('strong', {}, summary.counts.doneThisWeek)),
+          h('span', { class: 'donut-copy' },
+            h('span', { class: 'donut-label' }, '최근 7일 완료'),
+            h('span', { class: 'muted small' }, '완료로 닫힌 이슈'))))),
+    homeCard({ title: '내 할 일', hint: '나·내 팀에 배정된 미완료, 기한 순', issues: summary.mine, empty: '배정된 일이 없습니다.', onOpen, limit: 10, showProject: true, feature: true }),
     h('div', { class: 'home-grid' },
-      homeCard({ title: '내 할 일', hint: '나·내 팀에 배정된 미완료, 기한 순', issues: summary.mine, empty: '배정된 일이 없습니다.', onOpen, limit: 10, showProject: true }),
       homeCard({ title: '기한 지남', issues: summary.overdue, empty: '기한이 지난 이슈가 없습니다.', onOpen, tone: summary.overdue.length ? 'late' : '' }),
       homeCard({ title: '곧 마감', hint: '7일 안', issues: summary.soon, empty: '7일 안에 마감되는 이슈가 없습니다.', onOpen }),
       homeCard({ title: '내가 요청한 일', hint: '내가 보고했고 아직 안 끝난 것', issues: summary.reported, empty: '기다리는 일이 없습니다.', onOpen }),

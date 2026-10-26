@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStore, normalizeState, seedState } from '../lib/store.js';
 import { createAppServer } from '../server.mjs';
-import { homeSummary } from '../public/home.js';
+import { donutRatio, homeSummary } from '../public/home.js';
 
 const fields = { project: { key: 'OS' }, issuetype: { name: 'Task' }, summary: 'Work' };
 
@@ -174,4 +174,9 @@ test('home summary sorts my work by due date and groups projects', () => {
   assert.equal(summary.recent[0].key, 'OS-4');
   assert.deepEqual(summary.projects.map(p => [p.key, p.total, p.done, p.overdue]), [['MOB', 1, 1, 0], ['OS', 4, 0, 1]]);
   assert.equal(summary.counts.doneThisWeek, 1);
+  assert.equal(summary.counts.open, 4);
+  assert.equal(donutRatio(summary.counts.mine, summary.counts.open), 0.75);
+  assert.equal(donutRatio(summary.overdue.length, summary.counts.open), 0.25);
+  assert.equal(donutRatio(0, summary.counts.open), 0);
+  assert.equal(donutRatio(3, 0), 0);
 });

@@ -12,7 +12,7 @@ const T = { todo: '11', start: '21', review: '31', done: '41', reopen: '51' };
 const { values: options } = parseArgs({
   options: {
     url: { type: 'string' },
-    data: { type: 'string', default: join(tracker, 'data', 'db.json') },
+    data: { type: 'string', default: join(tracker, 'data', 'tracker.sqlite') },
     plan: { type: 'string', default: join(tracker, 'harness', 'plan.json') },
     scenario: { type: 'string', default: 'plan' },
     'dry-run': { type: 'boolean', default: false },

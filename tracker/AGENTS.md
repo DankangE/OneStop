@@ -11,6 +11,7 @@ npm run harness      # plan.json의 이슈 → 티켓 → 처리 실행, reports
 npm run token -- create <email> [이름]   # API 토큰 발급 (서버를 멈춘 상태에서)
 ```
 
+- 데이터 파일 기본값은 `data/tracker.sqlite`입니다. 처음 실행할 때 같은 폴더의 `db.json`이 있으면 그 내용을 가져옵니다. `npm run adminer`는 Adminer를 http://127.0.0.1:8088 에 띄웁니다. 시스템은 SQLite 3, 사용자 `admin`, 비밀번호 `onestop`, 데이터베이스 `/db/tracker.sqlite`입니다. 이슈 내용은 `issues` 테이블을 고치고, `issue_list`는 이름만 보여주는 조회용입니다.
 - `TRACKER_AUTH` 기본값은 `login`(이메일·비밀번호 + 세션 쿠키)입니다. `basic`은 API 토큰만, `none`은 루프백 전용 테스트 모드입니다.
 - 처음 실행하면 비밀번호가 아무에게도 없으므로 서버 콘솔에 설정 코드가 찍힙니다. 사이트 관리자가 그 코드로 첫 비밀번호를 정하고, 다른 사람은 멤버 화면의 `비밀번호 재설정`으로 임시 비밀번호를 받습니다.
 - 하네스를 `--url`로 실행 중인 서버에 붙이면 데이터 폴더의 `.automation-key`를 읽어 `X-Tracker-Automation-Key`로 보냅니다. `--url` 없이 실행하면 서버 안에서 `none` 모드로 돕니다. 브라우저 화면은 `X-Tracker-User`를 `none` 모드에서만 보냅니다.
@@ -49,7 +50,8 @@ npm run token -- create <email> [이름]   # API 토큰 발급 (서버를 멈춘
 ## 구조
 
 - `lib/workflow.js`: 상태, 전이, 상태 카테고리
-- `lib/store.js`: 프로젝트·역할, 이슈, 계층, 랭크, 보드·스프린트, 링크, 토큰, 변경 이력, 댓글, 검색, JSON 영속화
+- `lib/store.js`: 프로젝트·역할, 이슈, 계층, 랭크, 보드·스프린트, 링크, 토큰, 변경 이력, 댓글, 검색, 영속화
+- `lib/sql.js`: 기본 저장소 `data/tracker.sqlite`. 옆에 `db.json`이 있고 SQLite가 아직 없으면 한 번 가져온다. `.json` 경로는 기존 JSON 파일을 유지한다. Adminer는 `npm run adminer`로 띄우고, 시스템 SQLite, 데이터베이스 `/db/tracker.sqlite`로 연다. 화면이 다음 요청에서 바뀐 행을 읽는다.
 - `lib/access.js`: 역할별 권한, `mypermissions` 응답, 토큰 해시, Basic 헤더 파싱
 - `lib/jql.js`: JQL 부분 집합 파서와 평가기 (`openSprints()` 같은 함수 포함)
 - `lib/adf.js`: 일반 텍스트와 ADF 변환

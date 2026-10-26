@@ -1,0 +1,9 @@
+services:
+  adminer:
+    image: adminer:4
+    user: "${UID}:${GID}"
+    ports:
+      - "127.0.0.1:8088:8080"
+    volumes:
+      - ./data:/db
+      - ./adminer/login-password-less.php:/var/www/html/plugins-enabled/login-password-less.php:ro

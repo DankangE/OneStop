@@ -16,7 +16,7 @@ const types = {
   '.js': 'text/javascript; charset=utf-8',
   '.svg': 'image/svg+xml'
 };
-const publicFiles = new Set(['/index.html', '/styles.css', '/app.js', '/api.js', '/views.js', '/tree.js', '/calendar.js', '/home.js', '/favicon.svg']);
+const publicFiles = new Set(['/index.html', '/styles.css', '/app.js', '/api.js', '/views.js', '/tree.js', '/calendar.js', '/home.js', '/theme.js', '/favicon.svg']);
 const jsonType = 'application/json; charset=utf-8';
 const maxBody = 1024 * 1024;
 const loopback = new Set(['127.0.0.1', 'localhost', '::1']);
@@ -440,6 +440,14 @@ export function createAppServer(store, { auth = 'none', automationKey = null } =
       return;
     }
     if (url.pathname.startsWith('/rest/')) {
+      try {
+        await store.pull?.();
+      } catch (error) {
+        console.error('Tracker state read failed:', error);
+        send(500, JSON.stringify({ errorMessages: ['Internal server error.'], errors: {} }), jsonType);
+        request.resume();
+        return;
+      }
       const matching = routes.filter(r => r.regex.test(url.pathname));
       const found = matching.find(r => r.method === request.method);
       try {
@@ -521,7 +529,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   try {
     const options = listenOptions();
     const auth = authMode();
-    const dataFile = process.env.TRACKER_DATA || join(root, 'data', 'db.json');
+    const dataFile = process.env.TRACKER_DATA || join(root, 'data', 'tracker.sqlite');
     const store = await loadStore(dataFile);
     const automationKey = auth === 'login' ? generateSecret() : null;
     if (automationKey) {
@@ -537,6 +545,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     });
     server.listen(options, () => {
       console.log(`Tracker listening on http://${options.host}:${options.port} (auth: ${auth})`);
+      console.log(`Tracker data: ${dataFile}`);
       if (server.setupCode) {
         const admins = store.users().filter(u => u.siteAdmin).map(u => u.email).join(', ');
         console.log(`First-time setup: no one has a password yet. Open the tracker and enter setup code ${server.setupCode} with a site administrator's email (${admins}).`);

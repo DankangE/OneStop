@@ -12,6 +12,7 @@ import {
   defaultGrants, validateGrant, normalizeHolder, isLockedGrant, upgradeScheme, issuePeople,
   hashPassword, passwordMatches, generatePassword, minPasswordLength
 } from './access.js';
+import { isSqliteFile, prepareSql, sqliteBackend } from './sql.js';
 
 const assignFields = ['assignee', 'assignees', 'team'];
 
@@ -137,9 +138,10 @@ const byIdOrName = (list, ref, label) => {
   return found;
 };
 
-export function createStore({ file = null, state = null, now = () => new Date() } = {}) {
+export function createStore({ file = null, state = null, now = () => new Date(), backend = null } = {}) {
   let data = normalizeState(state ?? seedState());
   let writing = Promise.resolve();
+  let seen = backend ? backend.stamp() : 0;
 
   const findProject = ref => {
     const key = typeof ref === 'object' ? ref?.key ?? ref?.id : ref;
@@ -221,6 +223,15 @@ export function createStore({ file = null, state = null, now = () => new Date() 
   }
 
   function persist() {
+    if (backend) {
+      writing = writing.then(() => {
+        backend.write(data);
+        seen = backend.stamp();
+      }).catch(error => {
+        console.error('Tracker state write failed:', error.message);
+      });
+      return writing;
+    }
     if (!file) return writing;
     const snapshot = JSON.stringify(data, null, 2);
     writing = writing.then(async () => {
@@ -232,6 +243,16 @@ export function createStore({ file = null, state = null, now = () => new Date() 
       console.error('Tracker state write failed:', error.message);
     });
     return writing;
+  }
+
+  async function pull() {
+    if (!backend) return;
+    await writing;
+    const stamp = backend.stamp();
+    if (stamp > seen) {
+      data = normalizeState(backend.read());
+      seen = stamp;
+    }
   }
 
   function record(issue, actorId, items) {
@@ -1789,11 +1810,22 @@ export function createStore({ file = null, state = null, now = () => new Date() 
     linkView,
     linkTypeView,
     flush: () => writing,
+    pull,
     reset(next = seedState()) { data = next; return persist(); }
   };
 }
 
 export async function loadStore(file, options = {}) {
+  if (isSqliteFile(file)) {
+    const prepared = await prepareSql(file);
+    const state = normalizeState(prepared.initial ?? seedState());
+    const backend = sqliteBackend(prepared.db, file);
+    if (!prepared.ready) {
+      backend.write(state);
+      if (prepared.importedFrom) console.log(`Imported ${prepared.importedFrom} into ${file}`);
+    }
+    return createStore({ ...options, file, state, backend });
+  }
   let state = null;
   try {
     state = JSON.parse(await readFile(file, 'utf8'));
