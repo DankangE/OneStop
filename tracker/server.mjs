@@ -579,8 +579,37 @@ export async function startTracker() {
   return server;
 }
 
+let vercelApp;
+
+function vercelReady() {
+  vercelApp ??= createTracker().then(result => result.server).catch(error => {
+    vercelApp = null;
+    throw error;
+  });
+  return vercelApp;
+}
+
+const vercelServer = createServer(async (request, response) => {
+  try {
+    const app = await vercelReady();
+    app.emit('request', request, response);
+  } catch (error) {
+    const body = error.stack || error.message;
+    if (!response.headersSent) {
+      response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
+    }
+    response.end(body);
+  }
+});
+
+if (process.env.VERCEL && !process.env.TRACKER_EMBEDDED) {
+  vercelServer.listen(Number(process.env.PORT || 3000));
+}
+
+export default vercelServer;
+
 const launched = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (launched || (process.env.VERCEL && !process.env.TRACKER_EMBEDDED)) {
+if (launched) {
   startTracker().catch(error => {
     console.error(error.message);
     process.exitCode = 1;
