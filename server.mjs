@@ -82,28 +82,14 @@ export function createAppServer() {
 }
 
 if (process.env.VERCEL) {
-  let app = null;
-  let bootError = null;
+  process.env.TRACKER_ROOT ??= fileURLToPath(new URL('./tracker/', import.meta.url));
+  process.env.TRACKER_EMBEDDED = '1';
+  process.env.TRACKER_DATA ??= join(tmpdir(), 'tracker.json');
   const server = createServer(async (request, response) => {
-    if (bootError || !app) {
-      const body = bootError || 'Tracker is starting.';
-      response.writeHead(bootError ? 500 : 503, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
-      response.end(body);
-      return;
-    }
-    app.emit('request', request, response);
+    const { default: handle } = await import('./tracker/server.mjs');
+    await handle(request, response);
   });
-  server.listen(process.env.PORT || 3000);
-  try {
-    process.env.TRACKER_ROOT ??= fileURLToPath(new URL('./tracker/', import.meta.url));
-    process.env.TRACKER_EMBEDDED = '1';
-    process.env.TRACKER_DATA ??= join(tmpdir(), 'tracker.json');
-    const { createTracker } = await import('./tracker/server.mjs');
-    app = (await createTracker()).server;
-  } catch (error) {
-    bootError = error.stack || error.message;
-    console.error(bootError);
-  }
+  server.listen(Number(process.env.PORT || 3000));
 } else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const options = listenOptions();

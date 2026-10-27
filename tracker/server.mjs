@@ -579,34 +579,28 @@ export async function startTracker() {
   return server;
 }
 
-let vercelApp;
+let vercelApp = null;
+let vercelError = null;
+let vercelBoot = null;
 
-function vercelReady() {
-  vercelApp ??= createTracker().then(result => result.server).catch(error => {
-    vercelApp = null;
-    throw error;
-  });
-  return vercelApp;
-}
-
-const vercelServer = createServer(async (request, response) => {
-  try {
-    const app = await vercelReady();
-    app.emit('request', request, response);
-  } catch (error) {
-    const body = error.stack || error.message;
-    if (!response.headersSent) {
-      response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
-    }
-    response.end(body);
+export default async function vercelHandler(request, response) {
+  if (!vercelApp && !vercelError) {
+    vercelBoot ??= createTracker().then(result => {
+      vercelApp = result.server;
+    }).catch(error => {
+      vercelError = error.stack || error.message;
+      console.error(vercelError);
+    });
+    await vercelBoot;
   }
-});
-
-if (process.env.VERCEL && !process.env.TRACKER_EMBEDDED) {
-  vercelServer.listen(Number(process.env.PORT || 3000));
+  if (vercelError || !vercelApp) {
+    const body = vercelError || 'Tracker is starting.';
+    response.writeHead(vercelError ? 500 : 503, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
+    response.end(body);
+    return;
+  }
+  vercelApp.emit('request', request, response);
 }
-
-export default vercelServer;
 
 const launched = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (launched) {

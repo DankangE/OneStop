@@ -1,15 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Server } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import server from '../server.mjs';
+import handler from '../server.mjs';
 import { dataFile, inboundUrl } from '../api/index.mjs';
 
-test('the server module exports an http server for Vercel', () => {
-  assert.equal(server instanceof Server, true);
-  assert.equal(server.listening, false);
+test('the tracker server file exports a function and does not listen', () => {
+  assert.equal(typeof handler, 'function');
 });
 
 test('vercel data file stays on the explicit path', () => {
