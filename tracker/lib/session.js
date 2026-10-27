@@ -83,3 +83,9 @@ export const generateSecret = (bytes = 24) => randomBytes(bytes).toString('base6
 
 const codeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const generateCode = (length = 8) => Array.from(randomBytes(length), b => codeAlphabet[b % codeAlphabet.length]).join('');
+
+export function sharedSetupCode(env = process.env) {
+  if (!env.VERCEL || !env.VERCEL_DEPLOYMENT_ID) return null;
+  const digest = createHash('sha256').update(`onestop-setup:${env.VERCEL_DEPLOYMENT_ID}`).digest();
+  return Array.from(digest.subarray(0, 8), byte => codeAlphabet[byte % codeAlphabet.length]).join('');
+}

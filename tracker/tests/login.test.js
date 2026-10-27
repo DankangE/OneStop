@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { request } from 'node:http';
 import { createStore } from '../lib/store.js';
 import { hashPassword, passwordMatches } from '../lib/access.js';
+import { sharedSetupCode } from '../lib/session.js';
 import { createAppServer } from '../server.mjs';
 
 const json = { 'Content-Type': 'application/json' };
@@ -36,6 +37,19 @@ test('passwords are hashed with a salt and verified', () => {
   assert.ok(passwordMatches('correct horse', one));
   assert.ok(!passwordMatches('correct horsf', one));
   assert.ok(!passwordMatches('x', undefined));
+});
+
+test('one Vercel deployment shares a single setup code', () => {
+  const env = { VERCEL: '1', VERCEL_DEPLOYMENT_ID: 'dpl_same' };
+  const code = sharedSetupCode(env);
+  assert.match(code, /^[A-Z2-9]{8}$/);
+  assert.equal(sharedSetupCode(env), code);
+  assert.notEqual(sharedSetupCode({ VERCEL: '1', VERCEL_DEPLOYMENT_ID: 'dpl_other' }), code);
+  assert.equal(sharedSetupCode({}), null);
+  const first = createAppServer(createStore(), { auth: 'login', env });
+  const second = createAppServer(createStore(), { auth: 'login', env });
+  assert.equal(first.setupCode, code);
+  assert.equal(second.setupCode, code);
 });
 
 test('first setup needs the console code and a site administrator', async () => {

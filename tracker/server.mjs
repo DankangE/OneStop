@@ -8,7 +8,7 @@ import { loadStore, ApiError, issueTypes, priorities, linkTypes } from './lib/st
 import { statuses, statusView, availableTransitions, transitionView } from './lib/workflow.js';
 import { parseBasicAuth } from './lib/access.js';
 import {
-  createSessions, readCookie, sessionCookie, clearedCookie, hostIsLoopback, fromLoopback, sameOrigin, secretMatches, generateSecret, generateCode
+  createSessions, readCookie, sessionCookie, clearedCookie, hostIsLoopback, fromLoopback, sameOrigin, secretMatches, generateSecret, generateCode, sharedSetupCode
 } from './lib/session.js';
 
 const root = process.env.TRACKER_ROOT
@@ -440,9 +440,9 @@ function identify(store, request, { auth, sessions, automationKey }) {
 const passwordChangeRoutes = new Set(['/rest/tracker/1/password', '/rest/api/3/myself', '/rest/api/3/serverInfo']);
 const hasBody = request => Number(request.headers['content-length'] || 0) > 0 || Boolean(request.headers['transfer-encoding']);
 
-export function createAppServer(store, { auth = 'none', automationKey = null } = {}) {
+export function createAppServer(store, { auth = 'none', automationKey = null, env = process.env } = {}) {
   const sessions = createSessions(store);
-  const setup = { code: auth === 'login' && store.needsSetup() ? generateCode() : null };
+  const setup = { code: auth === 'login' && store.needsSetup() ? (sharedSetupCode(env) ?? generateCode()) : null };
   const routes = createRoutes(store, { auth, sessions, setup });
   const server = createServer(async (request, response) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
