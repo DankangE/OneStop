@@ -3,11 +3,17 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import handler from '../server.mjs';
+import { access } from 'node:fs/promises';
+import handler, { publicDirectory } from '../server.mjs';
 import { dataFile, inboundUrl } from '../api/index.mjs';
 
 test('the tracker server file exports a function and does not listen', () => {
   assert.equal(typeof handler, 'function');
+});
+
+test('screen files resolve from the tracker public directory', async () => {
+  const dir = await publicDirectory();
+  await access(join(dir, 'index.html'));
 });
 
 test('vercel data file stays on the explicit path', () => {

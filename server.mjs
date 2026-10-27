@@ -3,6 +3,7 @@ import { readFile, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, extname, sep, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import './tracker/assets.mjs';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const types = {

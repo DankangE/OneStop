@@ -1,8 +1,9 @@
 import { createServer } from 'node:http';
-import { readFile, writeFile, chmod, mkdir } from 'node:fs/promises';
+import { access, readFile, writeFile, chmod, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { modulePublicDir, publicFileUrls } from './assets.mjs';
 import { loadStore, ApiError, issueTypes, priorities, linkTypes } from './lib/store.js';
 import { statuses, statusView, availableTransitions, transitionView } from './lib/workflow.js';
 import { parseBasicAuth } from './lib/access.js';
@@ -20,6 +21,29 @@ const types = {
   '.svg': 'image/svg+xml'
 };
 const publicFiles = new Set(['/index.html', '/styles.css', '/app.js', '/api.js', '/views.js', '/tree.js', '/calendar.js', '/home.js', '/theme.js', '/favicon.svg']);
+void publicFileUrls;
+let cachedPublicDir;
+
+export async function publicDirectory() {
+  if (cachedPublicDir) return cachedPublicDir;
+  const candidates = [
+    modulePublicDir,
+    join(root, 'public'),
+    join(process.cwd(), 'tracker', 'public'),
+    join(process.cwd(), 'public')
+  ];
+  for (const dir of candidates) {
+    try {
+      await access(join(dir, 'index.html'));
+      cachedPublicDir = dir;
+      return dir;
+    } catch {
+      // The deployment may place the files beside the module or at the project root.
+    }
+  }
+  cachedPublicDir = candidates[0];
+  return cachedPublicDir;
+}
 const jsonType = 'application/json; charset=utf-8';
 const maxBody = 1024 * 1024;
 const loopback = new Set(['127.0.0.1', 'localhost', '::1']);
@@ -519,11 +543,12 @@ export function createAppServer(store, { auth = 'none', automationKey = null } =
       send(404, 'Not found');
       return;
     }
+    const file = join(await publicDirectory(), path.replace(/^\//, ''));
     try {
-      const data = await readFile(join(root, 'public', path));
+      const data = await readFile(file);
       send(200, data, types[extname(path)] || 'application/octet-stream');
     } catch (error) {
-      console.error('Asset read failed:', error.code || error.message);
+      console.error(`Asset read failed: ${error.code || error.message} ${file}`);
       send(error.code === 'ENOENT' ? 404 : 500, error.code === 'ENOENT' ? 'Not found' : 'Internal server error');
     }
   });
