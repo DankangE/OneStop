@@ -7,7 +7,7 @@ import { dataFile, inboundUrl } from '../api/index.mjs';
 
 test('vercel data file stays on the explicit path', () => {
   assert.equal(dataFile({ TRACKER_DATA: '/tmp/tracker.sqlite', VERCEL: '1' }), '/tmp/tracker.sqlite');
-  assert.equal(dataFile({ VERCEL: '1' }), join(tmpdir(), 'tracker.sqlite'));
+  assert.equal(dataFile({ VERCEL: '1' }), join(tmpdir(), 'tracker.json'));
   assert.throws(() => dataFile({}), /TRACKER_DATA/);
 });
 

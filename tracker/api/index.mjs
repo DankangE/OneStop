@@ -11,7 +11,7 @@ const { createAppServer, authMode } = await import('../server.mjs');
 
 export function dataFile(env = process.env) {
   if (env.TRACKER_DATA) return env.TRACKER_DATA;
-  if (env.VERCEL) return join(tmpdir(), 'tracker.sqlite');
+  if (env.VERCEL) return join(tmpdir(), 'tracker.json');
   throw new Error('TRACKER_DATA is required outside Vercel.');
 }
 

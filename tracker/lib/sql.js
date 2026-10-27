@@ -1,7 +1,6 @@
 import { readFile, mkdir } from 'node:fs/promises';
 import { statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import { adfToText, textToAdf } from './adf.js';
 
 const schema = `
@@ -507,7 +506,8 @@ export function readState(db) {
   };
 }
 
-export function openDatabase(file) {
+export async function openDatabase(file) {
+  const { DatabaseSync } = await import('node:sqlite');
   const db = new DatabaseSync(file, { timeout: 5000, enableForeignKeyConstraints: false });
   db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
   db.exec(schema);
@@ -534,7 +534,7 @@ async function legacyState(file) {
 
 export async function prepareSql(file) {
   await mkdir(dirname(file), { recursive: true });
-  const db = openDatabase(file);
+  const db = await openDatabase(file);
   const ready = db.prepare(`SELECT value FROM meta WHERE key = 'initialized'`).get();
   if (ready) return { db, initial: readState(db), ready: true, importedFrom: null };
   const legacy = await legacyState(file);

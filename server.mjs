@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile, realpath } from 'node:fs/promises';
-import { resolve, extname, sep } from 'node:path';
+import { tmpdir } from 'node:os';
+import { resolve, extname, sep, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
@@ -81,10 +82,28 @@ export function createAppServer() {
 }
 
 if (process.env.VERCEL) {
-  process.env.TRACKER_ROOT ??= fileURLToPath(new URL('./tracker/', import.meta.url));
-  process.env.TRACKER_EMBEDDED = '1';
-  const { startTracker } = await import('./tracker/server.mjs');
-  await startTracker();
+  let app = null;
+  let bootError = null;
+  const server = createServer(async (request, response) => {
+    if (bootError || !app) {
+      const body = bootError || 'Tracker is starting.';
+      response.writeHead(bootError ? 500 : 503, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
+      response.end(body);
+      return;
+    }
+    app.emit('request', request, response);
+  });
+  server.listen(process.env.PORT || 3000);
+  try {
+    process.env.TRACKER_ROOT ??= fileURLToPath(new URL('./tracker/', import.meta.url));
+    process.env.TRACKER_EMBEDDED = '1';
+    process.env.TRACKER_DATA ??= join(tmpdir(), 'tracker.json');
+    const { createTracker } = await import('./tracker/server.mjs');
+    app = (await createTracker()).server;
+  } catch (error) {
+    bootError = error.stack || error.message;
+    console.error(bootError);
+  }
 } else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const options = listenOptions();

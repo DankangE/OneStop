@@ -531,31 +531,40 @@ export function createAppServer(store, { auth = 'none', automationKey = null } =
   return server;
 }
 
-export async function startTracker() {
-  const options = listenOptions();
+export function trackerDataFile(env = process.env) {
+  if (env.TRACKER_DATA) return env.TRACKER_DATA;
+  if (env.VERCEL) return join(tmpdir(), 'tracker.json');
+  return join(root, 'data', 'tracker.sqlite');
+}
+
+export async function createTracker() {
   const auth = authMode();
-  const dataFile = process.env.TRACKER_DATA || (process.env.VERCEL ? join(tmpdir(), 'tracker.sqlite') : join(root, 'data', 'tracker.sqlite'));
+  const dataFile = trackerDataFile();
   const store = await loadStore(dataFile);
-  const automationKey = auth === 'login' ? generateSecret() : null;
-  if (automationKey && !process.env.VERCEL) {
+  const automationKey = auth === 'login' && !process.env.VERCEL ? generateSecret() : null;
+  if (automationKey) {
     const keyFile = join(dirname(resolve(dataFile)), '.automation-key');
     await mkdir(dirname(keyFile), { recursive: true });
     await writeFile(keyFile, `${automationKey}\n`, { mode: 0o600 });
     await chmod(keyFile, 0o600);
   }
   const server = createAppServer(store, { auth, automationKey });
+  console.log(`Tracker data: ${dataFile}`);
+  if (server.setupCode) {
+    const admins = store.users().filter(user => user.siteAdmin).map(user => user.email).join(', ');
+    console.log(`First-time setup: no one has a password yet. Open the tracker and enter setup code ${server.setupCode} with a site administrator's email (${admins}).`);
+  }
+  return { server, store };
+}
+
+export async function startTracker() {
+  const options = listenOptions();
+  const { server, store } = await createTracker();
   server.on('error', error => {
     console.error(`Tracker could not listen on ${options.host}:${options.port}: ${error.message}`);
     process.exitCode = 1;
   });
-  const logReady = () => {
-    console.log(`Tracker listening on http://${options.host}:${options.port} (auth: ${auth})`);
-    console.log(`Tracker data: ${dataFile}`);
-    if (server.setupCode) {
-      const admins = store.users().filter(user => user.siteAdmin).map(user => user.email).join(', ');
-      console.log(`First-time setup: no one has a password yet. Open the tracker and enter setup code ${server.setupCode} with a site administrator's email (${admins}).`);
-    }
-  };
+  const logReady = () => console.log(`Tracker listening on http://${options.host}:${options.port} (auth: ${authMode()})`);
   if (process.env.VERCEL) server.listen(process.env.PORT || 3000, logReady);
   else server.listen(options, logReady);
   for (const signal of ['SIGINT', 'SIGTERM']) {
