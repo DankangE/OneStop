@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { readFile, writeFile, chmod, mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { resolve, extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadStore, ApiError, issueTypes, priorities, linkTypes } from './lib/store.js';
@@ -9,7 +10,9 @@ import {
   createSessions, readCookie, sessionCookie, clearedCookie, hostIsLoopback, fromLoopback, sameOrigin, secretMatches, generateSecret, generateCode
 } from './lib/session.js';
 
-const root = fileURLToPath(new URL('.', import.meta.url));
+const root = process.env.TRACKER_ROOT
+  ? resolve(process.env.TRACKER_ROOT)
+  : fileURLToPath(new URL('.', import.meta.url));
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -146,6 +149,9 @@ export function createRoutes(store, { auth, sessions = createSessions(store), se
     route('POST', '/rest/tracker/1/user/{accountId}/password/reset', ({ params, actor }) => (
       [200, { temporaryPassword: store.resetPassword(params.accountId, actor) }]
     )),
+    route('GET', '/rest/tracker/1/notification', ({ actor, base }) => [200, store.listNotifications(actor, base)]),
+    route('POST', '/rest/tracker/1/notification/read', ({ actor }) => { store.markAllNotificationsRead(actor); return [204]; }),
+    route('POST', '/rest/tracker/1/notification/{id}/read', ({ params, actor }) => { store.markNotificationRead(params.id, actor); return [204]; }),
     route('GET', '/rest/tracker/1/users', ({ actor }) => [200, { users: store.directory(actor) }]),
     route('PUT', '/rest/api/3/issue/archive', async ({ request, actor }) => [200, store.archiveIssues(await readJson(request), actor)]),
     route('PUT', '/rest/api/3/issue/unarchive', async ({ request, actor }) => [200, store.unarchiveIssues(await readJson(request), actor)]),
@@ -525,43 +531,49 @@ export function createAppServer(store, { auth = 'none', automationKey = null } =
   return server;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try {
-    const options = listenOptions();
-    const auth = authMode();
-    const dataFile = process.env.TRACKER_DATA || join(root, 'data', 'tracker.sqlite');
-    const store = await loadStore(dataFile);
-    const automationKey = auth === 'login' ? generateSecret() : null;
-    if (automationKey) {
-      const keyFile = join(dirname(resolve(dataFile)), '.automation-key');
-      await mkdir(dirname(keyFile), { recursive: true });
-      await writeFile(keyFile, `${automationKey}\n`, { mode: 0o600 });
-      await chmod(keyFile, 0o600);
+export async function startTracker() {
+  const options = listenOptions();
+  const auth = authMode();
+  const dataFile = process.env.TRACKER_DATA || (process.env.VERCEL ? join(tmpdir(), 'tracker.sqlite') : join(root, 'data', 'tracker.sqlite'));
+  const store = await loadStore(dataFile);
+  const automationKey = auth === 'login' ? generateSecret() : null;
+  if (automationKey && !process.env.VERCEL) {
+    const keyFile = join(dirname(resolve(dataFile)), '.automation-key');
+    await mkdir(dirname(keyFile), { recursive: true });
+    await writeFile(keyFile, `${automationKey}\n`, { mode: 0o600 });
+    await chmod(keyFile, 0o600);
+  }
+  const server = createAppServer(store, { auth, automationKey });
+  server.on('error', error => {
+    console.error(`Tracker could not listen on ${options.host}:${options.port}: ${error.message}`);
+    process.exitCode = 1;
+  });
+  const logReady = () => {
+    console.log(`Tracker listening on http://${options.host}:${options.port} (auth: ${auth})`);
+    console.log(`Tracker data: ${dataFile}`);
+    if (server.setupCode) {
+      const admins = store.users().filter(user => user.siteAdmin).map(user => user.email).join(', ');
+      console.log(`First-time setup: no one has a password yet. Open the tracker and enter setup code ${server.setupCode} with a site administrator's email (${admins}).`);
     }
-    const server = createAppServer(store, { auth, automationKey });
-    server.on('error', error => {
-      console.error(`Tracker could not listen on ${options.host}:${options.port}: ${error.message}`);
-      process.exitCode = 1;
-    });
-    server.listen(options, () => {
-      console.log(`Tracker listening on http://${options.host}:${options.port} (auth: ${auth})`);
-      console.log(`Tracker data: ${dataFile}`);
-      if (server.setupCode) {
-        const admins = store.users().filter(u => u.siteAdmin).map(u => u.email).join(', ');
-        console.log(`First-time setup: no one has a password yet. Open the tracker and enter setup code ${server.setupCode} with a site administrator's email (${admins}).`);
-      }
-    });
-    for (const signal of ['SIGINT', 'SIGTERM']) {
-      process.once(signal, () => {
-        server.close(async () => {
-          await store.flush();
-          process.exit(0);
-        });
-        setTimeout(() => process.exit(1), 5000).unref();
+  };
+  if (process.env.VERCEL) server.listen(process.env.PORT || 3000, logReady);
+  else server.listen(options, logReady);
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.once(signal, () => {
+      server.close(async () => {
+        await store.flush();
+        process.exit(0);
       });
-    }
-  } catch (error) {
+      setTimeout(() => process.exit(1), 5000).unref();
+    });
+  }
+  return server;
+}
+
+const launched = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (launched || (process.env.VERCEL && !process.env.TRACKER_EMBEDDED)) {
+  startTracker().catch(error => {
     console.error(error.message);
     process.exitCode = 1;
-  }
+  });
 }

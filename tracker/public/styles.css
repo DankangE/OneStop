@@ -346,6 +346,18 @@ dialog .token-panel footer { display: flex; justify-content: flex-end; gap: 0.5r
 .dialog-form footer { display: flex; justify-content: flex-end; gap: 0.5rem; }
 
 .account { display: flex; align-items: center; gap: 0.5rem; }
+.inbox { position: relative; }
+.inbox-toggle { position: relative; }
+.inbox-count { margin-left: 0.35rem; background: var(--danger); color: #fff; border-radius: 999px; padding: 0 0.4rem; font-size: 0.75rem; font-weight: 700; }
+.inbox-panel { position: absolute; right: 0; top: calc(100% + 0.45rem); z-index: 30; width: min(22rem, calc(100vw - 1.5rem)); display: grid; gap: 0.35rem; padding: 0.75rem; background: var(--sheet); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px color-mix(in srgb, var(--label) 18%, transparent); }
+.inbox-head { display: flex; align-items: center; gap: 0.5rem; }
+.inbox-head h2 { margin: 0; font-size: 0.9375rem; }
+.inbox-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; max-height: 18rem; overflow: auto; }
+.inbox-item { display: grid; gap: 0.15rem; width: 100%; text-align: left; border: 0; background: var(--wash); border-radius: 8px; padding: 0.5rem 0.6rem; cursor: pointer; }
+.inbox-item.read { background: transparent; }
+.inbox-item:hover { background: var(--wash-2); }
+.inbox-item strong { font-size: 0.8125rem; }
+.inbox-item span { font-size: 0.8125rem; }
 .identity { display: grid; line-height: 1.2; text-align: right; font-size: 0.875rem; }
 .identity strong { color: var(--ink); font-weight: 600; }
 .identity .muted { color: var(--muted); }
@@ -742,9 +754,10 @@ button.chip.progress:hover, .chip.progress.open { border-color: var(--muted); co
   .brand { order: 2; }
   .project-switch { order: 3; flex: 1 1 auto; }
   .project-switch select { max-width: none; }
-  #theme-toggle { order: 4; }
-  #create-open { order: 5; }
-  .account { order: 6; flex: 1 1 100%; justify-content: flex-start; }
+  #inbox { order: 4; }
+  #theme-toggle { order: 5; }
+  #create-open { order: 6; }
+  .account { order: 7; flex: 1 1 100%; justify-content: flex-start; }
   .who-am-i { width: 100%; }
   .who-am-i select { width: 100%; max-width: none; }
   .identity { text-align: left; }

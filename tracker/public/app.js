@@ -281,6 +281,57 @@ function renderProjectSwitch() {
   } }, options));
 }
 
+const inbox = document.querySelector('#inbox');
+const inboxToggle = document.querySelector('#inbox-toggle');
+const inboxPanel = document.querySelector('#inbox-panel');
+let inboxOpen = false;
+let inboxTimer = null;
+
+function inboxWhen(iso) {
+  return new Date(String(iso).replace('+0000', 'Z')).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function renderInbox() {
+  const unread = state.inbox?.unread ?? 0;
+  inboxToggle.replaceChildren('알림');
+  if (unread) inboxToggle.append(h('span', { class: 'inbox-count' }, String(unread)));
+  inboxToggle.setAttribute('aria-expanded', String(inboxOpen));
+  inboxPanel.hidden = !inboxOpen;
+  if (!inboxOpen) return;
+  const items = state.inbox?.notifications ?? [];
+  inboxPanel.replaceChildren(
+    h('div', { class: 'inbox-head' },
+      h('h2', {}, '알림'),
+      h('span', { class: 'spacer' }),
+      unread ? h('button', { class: 'button ghost small', type: 'button', onClick: async () => {
+        await api.readNotifications();
+        await refreshInbox();
+      } }, '모두 읽음') : null),
+    items.length ? h('ul', { class: 'inbox-list' }, items.map(item => h('li', {}, h('button', {
+      class: `inbox-item${item.read ? ' read' : ''}`,
+      type: 'button',
+      onClick: async () => {
+        if (!item.read) await api.readNotification(item.id);
+        inboxOpen = false;
+        renderInbox();
+        openIssue(item.issueKey);
+        refreshInbox();
+      }
+    }, h('strong', {}, item.text), h('span', { class: 'muted small' }, `${item.issueKey} · ${inboxWhen(item.created)}`)))))
+      : h('p', { class: 'muted small' }, '새 알림이 없습니다.'));
+}
+
+async function refreshInbox() {
+  if (!state.meta) return;
+  try {
+    state.inbox = await api.notifications();
+  } catch (error) {
+    if (error.status === 401) fail(error);
+    return;
+  }
+  renderInbox();
+}
+
 function renderChrome() {
   renderProjectSwitch();
   backlogLink.hidden = !isScrum();
@@ -288,6 +339,7 @@ function renderChrome() {
   permissionsLink.hidden = !state.project || !state.perms.ADMINISTER_PROJECTS;
   usersLink.hidden = !state.siteAdmin;
   renderAccount();
+  renderInbox();
 }
 
 function renderAccount() {
@@ -330,6 +382,9 @@ async function createUser(email, name, joinProject) {
 }
 
 async function signOut() {
+  if (inboxTimer) clearInterval(inboxTimer);
+  inboxTimer = null;
+  inboxOpen = false;
   if (state.authMode === 'login') await api.logout().catch(() => {});
   clearCredentials();
   showLogin();
@@ -988,6 +1043,8 @@ function showAuth(props) {
   state.meta = null;
   setNavOpen(false);
   document.body.classList.add('signed-out');
+  inbox.hidden = true;
+  inboxOpen = false;
   drawer.hidden = true;
   if (dialog.open) dialog.close();
   if (auxDialog.open) auxDialog.close();
@@ -1093,10 +1150,25 @@ function showChangePassword(who, error) {
 async function start() {
   await loadMeta();
   document.body.classList.remove('signed-out');
+  inbox.hidden = false;
   await refreshIssues();
   if (!location.hash) history.replaceState(null, '', '#/home');
   await render();
+  await refreshInbox();
+  if (inboxTimer) clearInterval(inboxTimer);
+  inboxTimer = setInterval(refreshInbox, 20000);
 }
+
+inboxToggle.addEventListener('click', async () => {
+  inboxOpen = !inboxOpen;
+  if (inboxOpen) await refreshInbox();
+  else renderInbox();
+});
+document.addEventListener('click', event => {
+  if (!inboxOpen || inbox.contains(event.target)) return;
+  inboxOpen = false;
+  renderInbox();
+});
 
 document.querySelector('#create-cancel').addEventListener('click', () => dialog.close());
 createButton.addEventListener('click', () => openCreate());

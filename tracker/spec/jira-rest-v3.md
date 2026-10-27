@@ -348,6 +348,16 @@
 - `#/home` 화면은 새 API 없이 `POST /rest/api/3/search/jql` `ORDER BY updated DESC`로 볼 수 있는 모든 이슈를 받아 브라우저에서 계산합니다(`public/home.js`).
 - 내 할 일: 나 또는 내 팀에 배정된 미완료 이슈, 기한이 빠른 순, 같으면 우선순위가 높은 순. 기한 지남·7일 안 마감·내가 요청한 일(보고자=나, 담당 아님)·최근 변경 8개·프로젝트별 상태 분포를 함께 보여 줍니다.
 
+## 받은 알림 (내부 정의)
+
+출처: context7 `/websites/developer_atlassian_cloud_jira_platform_rest_v3` (api-group-issue-notification-schemes)에는 어떤 이벤트 메일을 누가 받는지를 정하는 알림 구성표만 있다. 로그인한 사람의 받은 알림 목록을 주고 읽음 처리하는 API는 관련 정보가 없습니다.
+
+- `GET /rest/tracker/1/notification`: 내 알림만, 최신순. `{ notifications: [{ id, kind, issueKey, summary, text, created, read, actor }], unread }`. 볼 수 없는 이슈의 알림은 빼며, 이슈를 지우면 알림도 지운다.
+- `POST /rest/tracker/1/notification/{id}/read`: 그 알림을 읽음. 내 것이 아니면 `404`. `204`.
+- `POST /rest/tracker/1/notification/read`: 보이는 알림을 모두 읽음. `204`.
+- 담당이 새로 붙으면(사람, 공동 담당, 팀원) 그 사람에게 `assigned` 알림을 만든다. 댓글이 달리면 담당자·팀원·보고자에게 `comment` 알림을 만든다. 행동한 본인, 비활성 사용자, 프로젝트를 볼 수 없는 사람은 빼며, 같은 이슈·같은 종류의 안 읽은 알림은 새로 만들지 않고 내용과 시각만 갱신한다.
+- 화면은 위쪽 `알림`에서 목록을 열고, 항목을 누르면 읽음으로 한 뒤 그 이슈를 연다.
+
 ## 보드 목록
 
 출처: JS (`GET /rest/agile/1.0/board?projectKeyOrId=`, 사용자가 볼 수 있는 보드만, `location.projectKey`)

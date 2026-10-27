@@ -80,7 +80,12 @@ export function createAppServer() {
   });
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.env.VERCEL) {
+  process.env.TRACKER_ROOT ??= fileURLToPath(new URL('./tracker/', import.meta.url));
+  process.env.TRACKER_EMBEDDED = '1';
+  const { startTracker } = await import('./tracker/server.mjs');
+  await startTracker();
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const options = listenOptions();
     const server = createAppServer();

@@ -170,6 +170,16 @@ CREATE TABLE IF NOT EXISTS tokens (
   created TEXT NOT NULL,
   last_used TEXT
 ) STRICT;
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  issue_id TEXT NOT NULL,
+  actor_id TEXT,
+  text TEXT NOT NULL,
+  created TEXT NOT NULL,
+  read INTEGER NOT NULL DEFAULT 0
+) STRICT;
 CREATE TABLE IF NOT EXISTS attachments (
   id TEXT PRIMARY KEY,
   issue_id TEXT NOT NULL,
@@ -218,7 +228,7 @@ LEFT JOIN users u ON u.account_id = i.assignee_id;
 
 const dataTables = [
   'changelog_items', 'changelogs', 'comments', 'issue_closed_sprints', 'issue_co_assignees', 'issue_labels',
-  'attachments', 'links', 'tokens', 'issues', 'sprints', 'boards', 'team_members', 'teams',
+  'attachments', 'links', 'tokens', 'notifications', 'issues', 'sprints', 'boards', 'team_members', 'teams',
   'scheme_upgrades', 'grants', 'project_roles', 'projects', 'users', 'counters', 'meta'
 ];
 
@@ -262,7 +272,7 @@ function grouped(rows, key) {
 
 export function writeState(db, state) {
   const counters = [
-    ...['issue', 'comment', 'changelog', 'link', 'sprint', 'token', 'board', 'grant', 'team', 'attachment'].map(name => [name, state.counters[name] ?? 0]),
+    ...['issue', 'comment', 'changelog', 'link', 'sprint', 'token', 'board', 'grant', 'team', 'attachment', 'notification'].map(name => [name, state.counters[name] ?? 0]),
     ...Object.entries(state.counters.project ?? {}).map(([key, value]) => [`project:${key}`, value])
   ];
   const roles = [];
@@ -348,6 +358,9 @@ export function writeState(db, state) {
     insert(db, 'links', ['id', 'type_id', 'inward_id', 'outward_id'], state.links.map(link => [link.id, link.typeId, link.inwardId, link.outwardId]));
     insert(db, 'tokens', ['id', 'account_id', 'label', 'hash', 'created', 'last_used'], state.tokens.map(token => [
       token.id, token.accountId, token.label, token.hash, token.created, token.lastUsed ?? null
+    ]));
+    insert(db, 'notifications', ['id', 'account_id', 'kind', 'issue_id', 'actor_id', 'text', 'created', 'read'], (state.notifications ?? []).map(entry => [
+      entry.id, entry.accountId, entry.kind, entry.issueId, entry.actorId ?? null, entry.text, entry.created, flag(entry.read)
     ]));
     insert(db, 'attachments', ['id', 'issue_id', 'filename', 'mime_type', 'size', 'author_id', 'created'], state.attachments.map(attachment => [
       attachment.id, attachment.issueId, attachment.filename, attachment.mimeType, attachment.size, attachment.authorId ?? null, attachment.created
@@ -483,6 +496,10 @@ export function readState(db) {
     links: db.prepare('SELECT * FROM links').all().map(row => ({ id: row.id, typeId: row.type_id, inwardId: row.inward_id, outwardId: row.outward_id })),
     tokens: db.prepare('SELECT * FROM tokens').all().map(row => ({
       id: row.id, accountId: row.account_id, label: row.label, hash: row.hash, created: row.created, lastUsed: row.last_used
+    })),
+    notifications: db.prepare('SELECT * FROM notifications').all().map(row => ({
+      id: row.id, accountId: row.account_id, kind: row.kind, issueId: row.issue_id, actorId: row.actor_id,
+      text: row.text, created: row.created, read: row.read === 1
     })),
     attachments: db.prepare('SELECT * FROM attachments').all().map(row => ({
       id: row.id, issueId: row.issue_id, filename: row.filename, mimeType: row.mime_type, size: row.size, authorId: row.author_id, created: row.created

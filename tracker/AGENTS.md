@@ -19,6 +19,8 @@ npm run token -- create <email> [이름]   # API 토큰 발급 (서버를 멈춘
 - 사용자는 사이트 관리자가 `#/users`에서 만들고 비활성화합니다. 비활성 판단은 store의 `can()`에 들어 있으니 권한 검사를 우회하는 새 코드를 만들지 마세요.
 - 첨부파일은 `data/attachments/{id}`에 저장됩니다(테스트처럼 `file`이 없으면 메모리). 화면은 `api.attachmentBlob`으로 받아 object URL로 보여 주므로 모든 인증 모드에서 같은 방식으로 동작합니다.
 - 홈(`#/home`) 계산은 DOM이 없는 `public/home.js`에 있고 `tests/people-files.test.js`로 검증합니다.
+- 받은 알림은 담당이 새로 붙거나 내 이슈에 댓글이 달릴 때 생깁니다. 본인 행동은 알리지 않습니다. `tests/notification.test.js`로 검증합니다.
+- Vercel은 프로젝트 루트의 `server.mjs`를 함수로 잡고, 모듈이 평가될 때 `listen()`을 호출해야 요청을 넘깁니다. 저장소 루트에서 `VERCEL`이 설정되면 비행 앱 대신 이 트래커를 띄웁니다. 루트 디렉터리를 `tracker`로 둔 경우에는 `tracker/server.mjs`가 직접 뜹니다. GitHub Actions `.github/workflows/tracker.yml`이 `tracker/**` 변경을 검사한 뒤, `VERCEL_TOKEN`·`VERCEL_ORG_ID`·`VERCEL_PROJECT_ID`가 있을 때만 `main`을 배포합니다. Vercel에서는 SQLite를 임시 디렉터리에 만들고, 로그인 세션은 그 프로세스 메모리에 둡니다. 로컬 데이터는 `data/tracker.sqlite`에 그대로 둡니다.
 
 ## 프로젝트
 
@@ -56,6 +58,7 @@ npm run token -- create <email> [이름]   # API 토큰 발급 (서버를 멈춘
 - `lib/jql.js`: JQL 부분 집합 파서와 평가기 (`openSprints()` 같은 함수 포함)
 - `lib/adf.js`: 일반 텍스트와 ADF 변환
 - `server.mjs`: `/rest/api/3`, `/rest/agile/1.0`, `/rest/tracker/1` 라우팅, 인증, 정적 파일 제공
+- `api/index.mjs`: Vercel의 `/api` 함수로 요청을 넘기는 보조 진입점. 배포의 기본 진입점은 `server.mjs`의 `listen()`이다.
 - `scripts/token.mjs`: 토큰 발급, 목록, 폐기 CLI
 - `public/`: 프로젝트 선택, 보드(진행 중 스프린트), 백로그(스프린트 계획, 스크럼 보드만), 목록(JQL), 멤버, 상세 패널, 로그인, 새 프로젝트·API 토큰 대화상자
 - `harness/`: 계획 실행기(`run.mjs`), 환경 점검(`checks.mjs`), 계획(`plan.json`)

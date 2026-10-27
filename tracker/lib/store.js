@@ -52,7 +52,7 @@ const sprintStates = ['future', 'active', 'closed'];
 
 export function seedState() {
   return {
-    counters: { issue: 10000, comment: 10000, changelog: 10000, link: 10000, sprint: 0, token: 0, board: 1, grant: 10000, team: 0, attachment: 10000, project: { OS: 0 } },
+    counters: { issue: 10000, comment: 10000, changelog: 10000, link: 10000, sprint: 0, token: 0, board: 1, grant: 10000, team: 0, attachment: 10000, notification: 0, project: { OS: 0 } },
     projects: [{
       id: '10000', key: 'OS', name: 'OneStop', leadId: 'u-haneul', description: '',
       roles: { 'u-haneul': 'administrators', 'u-doyun': 'members', 'u-seoyeon': 'members', 'u-agent': 'members', 'u-guest': 'viewers' }
@@ -69,7 +69,8 @@ export function seedState() {
     sprints: [],
     links: [],
     tokens: [],
-    attachments: []
+    attachments: [],
+    notifications: []
   };
 }
 
@@ -81,6 +82,7 @@ export function normalizeState(state) {
   state.links ??= [];
   state.tokens ??= [];
   state.attachments ??= [];
+  state.notifications ??= [];
   for (const seeded of seed.users) {
     const existing = state.users.find(u => u.accountId === seeded.accountId);
     if (existing) {
@@ -271,8 +273,41 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     labels: labels => (labels.length ? labels.join(' ') : null)
   };
 
+  function involved(issue) {
+    const owner = projectOf(issue);
+    const team = owner?.teams.find(entry => entry.id === issue.teamId);
+    const members = (team?.members ?? []).filter(id => owner.roles[id]);
+    return [...new Set([issue.assigneeId, ...issue.coAssigneeIds, ...members].filter(Boolean))];
+  }
+
+  function postNotice(accountIds, { kind, issue, actorId, text }) {
+    const recipients = [...new Set(accountIds)].filter(id => id && id !== actorId && isActive(id) && canBrowse(id, projectOf(issue)));
+    if (recipients.length === 0) return;
+    const created = jiraTime(now());
+    for (const accountId of recipients) {
+      const existing = data.notifications.find(entry => !entry.read && entry.accountId === accountId && entry.issueId === issue.id && entry.kind === kind);
+      if (existing) {
+        existing.actorId = actorId;
+        existing.text = text;
+        existing.created = created;
+        continue;
+      }
+      data.counters.notification += 1;
+      data.notifications.push({
+        id: String(data.counters.notification), accountId, kind, issueId: issue.id, actorId, text, created, read: false
+      });
+    }
+  }
+
+  function notifyAdded(issue, before, actorId) {
+    const added = involved(issue).filter(id => !before.includes(id));
+    const name = user(actorId)?.displayName ?? '누군가';
+    postNotice(added, { kind: 'assigned', issue, actorId, text: `${name}님이 ${issue.key}을 맡겼습니다. ${issue.summary}`.slice(0, 240) });
+  }
+
   function applyFields(issue, fields, actorId, { creating = false } = {}) {
     const items = [];
+    const assignmentBefore = ('assignees' in fields || 'assignee' in fields || 'team' in fields) ? involved(issue) : [];
     const set = (field, key, value, show) => {
       const before = issue[key];
       issue[key] = value;
@@ -352,6 +387,7 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     if (!creating && 'issuetype' in fields) {
       throw new ApiError(400, [], { issuetype: 'Changing the issue type is not supported. Create a new issue instead.' });
     }
+    if ('assignees' in fields || 'assignee' in fields || 'team' in fields) notifyAdded(issue, assignmentBefore, actorId);
     return items;
   }
 
@@ -450,7 +486,9 @@ export function createStore({ file = null, state = null, now = () => new Date(),
       throw error;
     }
     if (!assignFields.some(name => name in fields) && owner.assigneeType === 'PROJECT_LEAD' && can(owner.leadId, 'ASSIGNABLE_USER', owner)) {
+      const before = involved(issue);
       issue.assigneeId = owner.leadId;
+      notifyAdded(issue, before, actorId);
     }
     data.issues.push(issue);
     if (body.transition) {
@@ -498,6 +536,7 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     for (const kid of kids) for (const grandchild of children(kid)) doomed.add(grandchild.id);
     data.issues = data.issues.filter(candidate => !doomed.has(candidate.id));
     data.links = data.links.filter(link => !doomed.has(link.inwardId) && !doomed.has(link.outwardId));
+    data.notifications = data.notifications.filter(entry => !doomed.has(entry.issueId));
     const orphaned = data.attachments.filter(a => doomed.has(a.issueId));
     data.attachments = data.attachments.filter(a => !doomed.has(a.issueId));
     for (const attachment of orphaned) blobs.remove(attachment.id).catch(error => console.error('Attachment cleanup failed:', error.message));
@@ -560,6 +599,12 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     const comment = { id: String(data.counters.comment), authorId: actorId, body: doc, created, updated: created };
     issue.comments.push(comment);
     issue.updated = created;
+    const name = user(actorId)?.displayName ?? '누군가';
+    const snippet = adfToText(doc).replace(/\s+/g, ' ').trim().slice(0, 80);
+    postNotice([...involved(issue), issue.reporterId], {
+      kind: 'comment', issue, actorId,
+      text: `${name}님이 ${issue.key}에 댓글을 남겼습니다. ${snippet}`.trim().slice(0, 240)
+    });
     if (persistNow) persist();
     return { issue, comment };
   }
@@ -962,6 +1007,7 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     const boards = new Set(data.boards.filter(b => b.projectId === target.id).map(b => b.id));
     data.issues = data.issues.filter(i => !doomed.has(i.id));
     data.links = data.links.filter(l => !doomed.has(l.inwardId) && !doomed.has(l.outwardId));
+    data.notifications = data.notifications.filter(entry => !doomed.has(entry.issueId));
     data.sprints = data.sprints.filter(s => !boards.has(s.originBoardId));
     data.boards = data.boards.filter(b => !boards.has(b.id));
     data.projects = data.projects.filter(p => p !== target);
@@ -1209,6 +1255,47 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     if (!match) return null;
     match.lastUsed = new Date(now()).toISOString();
     return owner.accountId;
+  }
+
+  function visibleNotices(actorId) {
+    return data.notifications.filter(entry => {
+      if (entry.accountId !== actorId) return false;
+      const issue = findIssue(entry.issueId);
+      return issue && canBrowse(actorId, projectOf(issue));
+    });
+  }
+
+  function notificationView(entry, baseUrl) {
+    const issue = findIssue(entry.issueId);
+    return {
+      id: entry.id,
+      kind: entry.kind,
+      issueKey: issue.key,
+      summary: issue.summary,
+      text: entry.text,
+      created: entry.created,
+      read: entry.read === true,
+      actor: userView(entry.actorId, baseUrl)
+    };
+  }
+
+  function listNotifications(actorId, baseUrl) {
+    const notifications = visibleNotices(actorId)
+      .sort((a, b) => (a.created < b.created ? 1 : -1))
+      .map(entry => notificationView(entry, baseUrl));
+    return { notifications, unread: notifications.filter(entry => !entry.read).length };
+  }
+
+  function markNotificationRead(id, actorId) {
+    const entry = data.notifications.find(item => item.id === String(id) && item.accountId === actorId);
+    if (!entry || !visibleNotices(actorId).some(item => item.id === entry.id)) throw new ApiError(404, ['The notification does not exist.']);
+    entry.read = true;
+    persist();
+  }
+
+  function markAllNotificationsRead(actorId) {
+    for (const entry of visibleNotices(actorId)) entry.read = true;
+    persist();
   }
 
   function createToken(accountId, label) {
@@ -1798,6 +1885,9 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     deleteAttachment,
     attachmentView,
     maxAttachment,
+    listNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
     createToken,
     listTokens,
     revokeToken,
