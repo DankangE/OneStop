@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless';
+import { neon } from '../vendor/neon.mjs';
 import { passwordMatches } from './access.js';
 
 const postgresUrl = /^postgres(?:ql)?:\/\//i;

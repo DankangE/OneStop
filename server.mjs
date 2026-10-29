@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { resolve, extname, sep, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import './tracker/assets.mjs';
-import { neon } from '@neondatabase/serverless';
+import { neon } from './tracker/vendor/neon.mjs';
 
 void neon;
 

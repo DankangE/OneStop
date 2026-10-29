@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "server.mjs": {
-      "includeFiles": "tracker/public/**,node_modules/@neondatabase/serverless/**"
+      "includeFiles": "tracker/public/**"
     }
   }
 }
