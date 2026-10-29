@@ -1,3 +1,4 @@
+import { neon } from '@neondatabase/serverless';
 import { passwordMatches } from './access.js';
 
 const postgresUrl = /^postgres(?:ql)?:\/\//i;
@@ -102,6 +103,5 @@ export function createPostgresBackend(sql) {
 }
 
 export async function connectPostgres(url) {
-  const { neon } = await import('@neondatabase/serverless');
   return createPostgresBackend(neon(url));
 }

@@ -4,6 +4,9 @@ import { tmpdir } from 'node:os';
 import { resolve, extname, sep, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import './tracker/assets.mjs';
+import { neon } from '@neondatabase/serverless';
+
+void neon;
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const types = {
