@@ -162,7 +162,8 @@
   - `GET /session` (익명): `{authentication, authenticated, user?, mustChangePassword?, setupRequired?}`
   - `POST /session` `{email, password}` (익명): 성공하면 쿠키를 주고 `{user, mustChangePassword}`. 틀리면 `401`. 같은 이메일로 5번 틀리면 1분 동안 `429`.
   - `DELETE /session` (익명): 세션을 지우고 쿠키를 비웁니다. `204`.
-  - `POST /setup` `{setupCode, email, password}` (익명): 아무도 비밀번호가 없을 때만 됩니다. 설정 코드는 서버 콘솔에 한 번 찍히는 8자리입니다. 사이트 관리자 이메일만 받습니다. 이미 끝났으면 `409`, 코드가 틀리면 `403`.
+  - `POST /setup` `{email, password}` (익명): 아무도 비밀번호가 없을 때만 됩니다. 사이트 관리자 이메일만 받습니다. 이미 끝났으면 `409`. 설정 코드는 받지 않습니다.
+  - 내부 정의: `users.password_hash`에 `scrypt$`로 시작하지 않는 임시 비밀번호를 직접 넣으면, 다음 읽기에서 해시로 바꾸고 `mustChangePassword`를 켭니다. 그 비밀번호로 로그인한 사람은 새 비밀번호를 정해야 합니다.
   - `PUT /password` `{current, next}`: 본인 비밀번호 변경. 세션으로 호출하면 새 쿠키를 줍니다.
   - `POST /user/{accountId}/password/reset`: 사이트 관리자만. `{temporaryPassword}`(12자)를 한 번만 돌려주고, 대상은 첫 로그인 때 비밀번호를 바꿔야 합니다.
 - 비밀번호는 8~200자이며 `scrypt$salt$hash`로만 저장합니다. 비밀번호를 바꾸거나 재설정하면 `sessionVersion`이 올라가 그 사람의 기존 세션이 모두 끊깁니다.

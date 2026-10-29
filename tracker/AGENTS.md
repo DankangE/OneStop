@@ -13,14 +13,14 @@ npm run token -- create <email> [이름]   # API 토큰 발급 (서버를 멈춘
 
 - 데이터 파일 기본값은 `data/tracker.sqlite`입니다. 처음 실행할 때 같은 폴더의 `db.json`이 있으면 그 내용을 가져옵니다. `npm run adminer`는 Adminer를 http://127.0.0.1:8088 에 띄웁니다. 시스템은 SQLite 3, 사용자 `admin`, 비밀번호 `onestop`, 데이터베이스 `/db/tracker.sqlite`입니다. 이슈 내용은 `issues` 테이블을 고치고, `issue_list`는 이름만 보여주는 조회용입니다.
 - `TRACKER_AUTH` 기본값은 `login`(이메일·비밀번호 + 세션 쿠키)입니다. `basic`은 API 토큰만, `none`은 루프백 전용 테스트 모드입니다.
-- 처음 실행하면 비밀번호가 아무에게도 없으므로 서버 콘솔에 설정 코드가 찍힙니다. 사이트 관리자가 그 코드로 첫 비밀번호를 정하고, 다른 사람은 멤버 화면의 `비밀번호 재설정`으로 임시 비밀번호를 받습니다.
+- 비밀번호가 없으면 처음 설정 화면에서 사이트 관리자 이메일과 비밀번호를 정합니다. 설정 코드는 없습니다. 데이터베이스 `users.password_hash`에 임시 비밀번호를 넣어도 되고, 그때는 다음 요청에서 해시로 바뀐 뒤 로그인하면 본인이 새 비밀번호를 정합니다. 다른 사람은 멤버 화면의 `비밀번호 재설정`으로 임시 비밀번호를 받습니다.
 - 하네스를 `--url`로 실행 중인 서버에 붙이면 데이터 폴더의 `.automation-key`를 읽어 `X-Tracker-Automation-Key`로 보냅니다. `--url` 없이 실행하면 서버 안에서 `none` 모드로 돕니다. 브라우저 화면은 `X-Tracker-User`를 `none` 모드에서만 보냅니다.
 - 쓰기 요청은 `Content-Type: application/json`이어야 하고(아니면 415), 다른 Origin은 403입니다. 예외는 첨부 업로드(`multipart/form-data` + `X-Atlassian-Token: no-check`)뿐입니다.
 - 사용자는 사이트 관리자가 `#/users`에서 만들고 비활성화합니다. 비활성 판단은 store의 `can()`에 들어 있으니 권한 검사를 우회하는 새 코드를 만들지 마세요.
 - 첨부파일은 `data/attachments/{id}`에 저장됩니다(테스트처럼 `file`이 없으면 메모리). 화면은 `api.attachmentBlob`으로 받아 object URL로 보여 주므로 모든 인증 모드에서 같은 방식으로 동작합니다.
 - 홈(`#/home`) 계산은 DOM이 없는 `public/home.js`에 있고 `tests/people-files.test.js`로 검증합니다.
 - 받은 알림은 담당이 새로 붙거나 내 이슈에 댓글이 달릴 때 생깁니다. 본인 행동은 알리지 않습니다. `tests/notification.test.js`로 검증합니다.
-- Vercel은 프로젝트 루트의 `server.mjs`를 함수로 잡고, 모듈이 평가될 때 `listen()`을 호출해야 요청을 넘깁니다. 저장소 루트에서 `VERCEL`이 설정되면 비행 앱 대신 이 트래커를 띄웁니다. 그때 이슈 데이터는 임시 디렉터리의 JSON 파일입니다. 같은 배포의 설정 코드는 하나이고, 비밀번호와 로그인 쿠키는 배포 식별자로 서명해 다른 서버도 확인합니다. 로컬 데이터는 `data/tracker.sqlite`에 그대로 둡니다. GitHub Actions `.github/workflows/tracker.yml`이 `tracker/**` 변경을 검사한 뒤, `VERCEL_TOKEN`·`VERCEL_ORG_ID`·`VERCEL_PROJECT_ID`가 있을 때만 `main`을 배포합니다.
+- Vercel은 프로젝트 루트의 `server.mjs`를 함수로 잡고, 모듈이 평가될 때 `listen()`을 호출해야 요청을 넘깁니다. 저장소 루트에서 `VERCEL`이 설정되면 비행 앱 대신 이 트래커를 띄웁니다. 그때 이슈 데이터는 임시 디렉터리의 JSON 파일입니다. 비밀번호와 로그인 쿠키는 배포 식별자로 서명해 다른 서버도 확인합니다. 로컬 데이터는 `data/tracker.sqlite`에 그대로 둡니다. GitHub Actions `.github/workflows/tracker.yml`이 `tracker/**` 변경을 검사한 뒤, `VERCEL_TOKEN`·`VERCEL_ORG_ID`·`VERCEL_PROJECT_ID`가 있을 때만 `main`을 배포합니다.
 
 ## 프로젝트
 

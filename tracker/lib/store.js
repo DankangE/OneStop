@@ -247,6 +247,21 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     return writing;
   }
 
+  function sealPlainPasswords() {
+    let changed = false;
+    for (const account of data.users) {
+      const raw = account.passwordHash;
+      if (!raw || raw.startsWith('scrypt$')) continue;
+      account.passwordHash = hashPassword(raw);
+      account.mustChangePassword = true;
+      account.sessionVersion = (account.sessionVersion ?? 0) + 1;
+      changed = true;
+    }
+    if (changed) persist();
+  }
+
+  sealPlainPasswords();
+
   async function pull() {
     if (!backend) return;
     await writing;
@@ -254,6 +269,7 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     if (stamp > seen) {
       data = normalizeState(backend.read());
       seen = stamp;
+      sealPlainPasswords();
     }
   }
 

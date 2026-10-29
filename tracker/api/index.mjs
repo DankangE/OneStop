@@ -34,9 +34,9 @@ function boot() {
     const auth = authMode();
     const store = await loadStore(dataFile());
     const server = createAppServer(store, { auth, automationKey: auth === 'login' ? generateSecret() : null });
-    if (server.setupCode) {
+    if (auth === 'login' && store.needsSetup()) {
       const admins = store.users().filter(user => user.siteAdmin).map(user => user.email).join(', ');
-      console.log(`First-time setup: no one has a password yet. Enter setup code ${server.setupCode} with a site administrator's email (${admins}).`);
+      console.log(`No password yet. Set one for a site administrator (${admins}) on the first-run screen, or write a temporary password into users.password_hash.`);
     }
     return server;
   })();

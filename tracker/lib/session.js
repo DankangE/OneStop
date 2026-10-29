@@ -116,19 +116,9 @@ export function secretMatches(given, expected) {
 
 export const generateSecret = (bytes = 24) => randomBytes(bytes).toString('base64url');
 
-const codeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-export const generateCode = (length = 8) => Array.from(randomBytes(length), b => codeAlphabet[b % codeAlphabet.length]).join('');
-
 export function deploymentSeed(env = process.env) {
   if (!env.VERCEL) return null;
   return env.VERCEL_DEPLOYMENT_ID || env.VERCEL_URL || env.VERCEL_GIT_COMMIT_SHA || null;
-}
-
-export function sharedSetupCode(env = process.env) {
-  const seed = deploymentSeed(env);
-  if (!seed) return null;
-  const hashed = createHash('sha256').update(`onestop-setup:${seed}`).digest();
-  return Array.from(hashed.subarray(0, 8), byte => codeAlphabet[byte % codeAlphabet.length]).join('');
 }
 
 export const vaultName = 'tracker_vault';

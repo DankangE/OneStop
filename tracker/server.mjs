@@ -8,7 +8,7 @@ import { loadStore, ApiError, issueTypes, priorities, linkTypes } from './lib/st
 import { statuses, statusView, availableTransitions, transitionView } from './lib/workflow.js';
 import { parseBasicAuth } from './lib/access.js';
 import {
-  createSessions, readCookie, sessionCookie, clearedCookie, hostIsLoopback, fromLoopback, sameOrigin, secretMatches, generateSecret, generateCode, sharedSetupCode, deploymentSeed, vaultCookie, vaultName, readVault
+  createSessions, readCookie, sessionCookie, clearedCookie, hostIsLoopback, fromLoopback, sameOrigin, secretMatches, generateSecret, deploymentSeed, vaultCookie, vaultName, readVault
 } from './lib/session.js';
 
 const root = process.env.TRACKER_ROOT
@@ -119,7 +119,7 @@ async function readFiles(request, perFile) {
   return Promise.all(files.map(async entry => ({ filename: entry.name, mimeType: entry.type, data: Buffer.from(await entry.arrayBuffer()) })));
 }
 
-export function createRoutes(store, { auth, sessions = createSessions(store), setup = { code: null }, deploymentKey = null } = {}) {
+export function createRoutes(store, { auth, sessions = createSessions(store), deploymentKey = null } = {}) {
   const issuesPage = (issues, url, base, viewer) => {
     const { values, ...meta } = page(issues, url);
     return { ...meta, issues: values.map(issue => store.issueView(issue, base, { viewer })) };
@@ -160,11 +160,7 @@ export function createRoutes(store, { auth, sessions = createSessions(store), se
       loginOnly();
       const body = await readJson(request);
       if (!store.needsSetup()) throw new ApiError(409, ['Setup is already complete. Sign in instead.']);
-      if (!secretMatches(String(body.setupCode ?? '').trim().toUpperCase(), setup.code)) {
-        throw new ApiError(403, [], { setupCode: 'The setup code is incorrect. Check the server console.' });
-      }
       const owner = store.setupAdmin(body.email, body.password);
-      setup.code = null;
       return signedIn(request, owner, base, 201);
     }, { anonymous: true }),
     route('PUT', '/rest/tracker/1/password', async ({ request, actor, via, base }) => {
@@ -447,8 +443,7 @@ const hasBody = request => Number(request.headers['content-length'] || 0) > 0 ||
 export function createAppServer(store, { auth = 'none', automationKey = null, env = process.env } = {}) {
   const deploymentKey = deploymentSeed(env);
   const sessions = createSessions(store, { key: deploymentKey });
-  const setup = { code: auth === 'login' && store.needsSetup() ? (sharedSetupCode(env) ?? generateCode()) : null };
-  const routes = createRoutes(store, { auth, sessions, setup, deploymentKey });
+  const routes = createRoutes(store, { auth, sessions, deploymentKey });
   const server = createServer(async (request, response) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -561,7 +556,6 @@ export function createAppServer(store, { auth = 'none', automationKey = null, en
       send(error.code === 'ENOENT' ? 404 : 500, error.code === 'ENOENT' ? 'Not found' : 'Internal server error');
     }
   });
-  Object.defineProperty(server, 'setupCode', { get: () => setup.code });
   return server;
 }
 
@@ -584,9 +578,9 @@ export async function createTracker() {
   }
   const server = createAppServer(store, { auth, automationKey });
   console.log(`Tracker data: ${dataFile}`);
-  if (server.setupCode) {
+  if (auth === 'login' && store.needsSetup()) {
     const admins = store.users().filter(user => user.siteAdmin).map(user => user.email).join(', ');
-    console.log(`First-time setup: no one has a password yet. Open the tracker and enter setup code ${server.setupCode} with a site administrator's email (${admins}).`);
+    console.log(`No password yet. Set one for a site administrator (${admins}) on the first-run screen, or write a temporary password into users.password_hash.`);
   }
   return { server, store };
 }

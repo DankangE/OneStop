@@ -379,9 +379,8 @@ const authForms = {
   },
   setup: {
     title: '처음 설정',
-    hint: '아직 비밀번호를 가진 사람이 없습니다. 서버를 실행한 터미널에 설정 코드와 사이트 관리자 이메일이 찍혀 있습니다. 그 둘로 첫 비밀번호를 정하세요.',
+    hint: '아직 비밀번호를 가진 사람이 없습니다. 사이트 관리자 이메일과 비밀번호를 정하세요. 정한 뒤에는 본인이 비밀번호를 바꿀 수 있습니다.',
     fields: () => [
-      h('label', {}, '설정 코드', h('input', { name: 'setupCode', required: true, autocomplete: 'one-time-code', spellcheck: 'false' })),
       emailField(),
       passwordField(`새 비밀번호 (${minPassword}자 이상)`, 'next', 'new-password'),
       passwordField('새 비밀번호 확인', 'confirm', 'new-password')
@@ -400,7 +399,7 @@ const authForms = {
   }
 };
 
-export function renderLogin({ kind = 'password', error, who, onSubmit, onCancel }) {
+export function renderLogin({ kind = 'password', error, hint, who, onSubmit, onCancel }) {
   const spec = authForms[kind];
   const message = h('p', { class: 'error', role: 'alert', hidden: !error }, error ?? '');
   const show = text => {
@@ -409,7 +408,7 @@ export function renderLogin({ kind = 'password', error, who, onSubmit, onCancel 
   };
   const form = h('form', { class: 'login', onSubmit: async event => {
     event.preventDefault();
-    const values = Object.fromEntries([...new FormData(event.currentTarget)].map(([k, v]) => [k, k === 'email' || k === 'setupCode' ? String(v).trim() : String(v)]));
+    const values = Object.fromEntries([...new FormData(event.currentTarget)].map(([k, v]) => [k, k === 'email' ? String(v).trim() : String(v)]));
     if ('confirm' in values && values.confirm !== values.next) {
       show('새 비밀번호 두 칸이 서로 다릅니다.');
       return;
@@ -429,7 +428,7 @@ export function renderLogin({ kind = 'password', error, who, onSubmit, onCancel 
   } },
   h('h1', {}, spec.title),
   who ? h('p', { class: 'identity' }, h('strong', {}, who.displayName), h('span', { class: 'muted small' }, who.emailAddress)) : null,
-  h('p', { class: 'muted' }, spec.hint),
+  h('p', { class: 'muted' }, hint ?? spec.hint),
   spec.fields(),
   message,
   h('div', { class: 'login-actions' },

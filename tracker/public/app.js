@@ -1060,7 +1060,7 @@ async function afterSignIn(session) {
   else await start();
 }
 
-function showLogin(error) {
+function showLogin(error, hint) {
   if (state.authMode === 'basic') {
     showAuth({
       kind: 'token',
@@ -1080,6 +1080,7 @@ function showLogin(error) {
   showAuth({
     kind: 'password',
     error,
+    hint,
     onSubmit: async ({ email, password }) => {
       try {
         await afterSignIn(await api.login(email, password));
@@ -1091,8 +1092,7 @@ function showLogin(error) {
 }
 
 const authMessages = {
-  email: '사이트 관리자 이메일이 아닙니다. 서버 터미널에 설정 코드와 함께 찍힌 이메일을 넣으세요.',
-  setupCode: '설정 코드가 틀렸습니다. 서버를 실행한 터미널에 찍힌 코드를 확인하세요.',
+  email: '사이트 관리자 이메일이 아닙니다. 서버 터미널에 찍힌 이메일을 넣으세요.',
   current: '현재 비밀번호가 틀렸습니다.'
 };
 
@@ -1112,10 +1112,10 @@ function showSetup(error) {
   showAuth({
     kind: 'setup',
     error,
-    onSubmit: async ({ setupCode, email, next }) => {
+    onSubmit: async ({ email, next }) => {
       let session;
       try {
-        session = await api.setup(setupCode, email, next);
+        session = await api.setup(email, next);
       } catch (failure) {
         if (failure.status === 409) {
           showLogin('이미 처음 설정이 끝났습니다. 로그인하세요.');

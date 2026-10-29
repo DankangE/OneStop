@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
-import { createStore } from '../lib/store.js';
+import { createStore, seedState } from '../lib/store.js';
 import { hashPassword, passwordMatches } from '../lib/access.js';
-import { sharedSetupCode } from '../lib/session.js';
 import { createAppServer } from '../server.mjs';
 
 const json = { 'Content-Type': 'application/json' };
@@ -30,6 +29,16 @@ const statusWithHost = (base, path, host, headers = {}) => new Promise((resolve,
 
 const cookieOf = response => response.headers.get('set-cookie')?.split(';')[0];
 
+test('a plain password written on a user becomes a hash and must be changed', () => {
+  const state = seedState();
+  state.users[0].passwordHash = 'admin123';
+  const store = createStore({ state });
+  const owner = store.login('haneul@onestop.local', 'admin123');
+  assert.equal(owner.mustChangePassword, true);
+  assert.match(owner.passwordHash, /^scrypt\$/);
+  assert.equal(store.accountState('u-haneul').mustChangePassword, true);
+});
+
 test('passwords are hashed with a salt and verified', () => {
   const one = hashPassword('correct horse');
   assert.match(one, /^scrypt\$/);
@@ -39,28 +48,12 @@ test('passwords are hashed with a salt and verified', () => {
   assert.ok(!passwordMatches('x', undefined));
 });
 
-test('one Vercel deployment shares a single setup code', () => {
+test('first setup accepts an email and password without a setup code', async () => {
   const env = { VERCEL: '1', VERCEL_DEPLOYMENT_ID: 'dpl_same' };
-  const code = sharedSetupCode(env);
-  assert.match(code, /^[A-Z2-9]{8}$/);
-  assert.equal(sharedSetupCode(env), code);
-  assert.equal(sharedSetupCode({ VERCEL: '1', VERCEL_URL: 'one-stop.vercel.app' }), sharedSetupCode({ VERCEL: '1', VERCEL_URL: 'one-stop.vercel.app' }));
-  assert.notEqual(sharedSetupCode({ VERCEL: '1', VERCEL_DEPLOYMENT_ID: 'dpl_other' }), code);
-  assert.equal(sharedSetupCode({}), null);
-  assert.equal(sharedSetupCode({ VERCEL: '1' }), null);
-  const first = createAppServer(createStore(), { auth: 'login', env });
-  const second = createAppServer(createStore(), { auth: 'login', env });
-  assert.equal(first.setupCode, code);
-  assert.equal(second.setupCode, code);
-});
-
-test('a password set on one Vercel server is accepted by another', async () => {
-  const env = { VERCEL: '1', VERCEL_DEPLOYMENT_ID: 'dpl_same' };
-  const code = sharedSetupCode(env);
   const first = await serve(createStore(), { env });
   const second = await serve(createStore(), { env });
   try {
-    const done = await first.call('POST', '/rest/tracker/1/setup', { body: { setupCode: code, email: 'haneul@onestop.local', password: 'admin123' } });
+    const done = await first.call('POST', '/rest/tracker/1/setup', { body: { email: 'haneul@onestop.local', password: 'admin123' } });
     assert.equal(done.status, 201);
     const cookies = done.headers.getSetCookie().map(item => item.split(';')[0]).join('; ');
     const login = await second.call('POST', '/rest/tracker/1/session', { body: { email: 'haneul@onestop.local', password: 'admin123' }, cookie: cookies });
@@ -74,31 +67,27 @@ test('a password set on one Vercel server is accepted by another', async () => {
   }
 });
 
-test('first setup needs the console code and a site administrator', async () => {
+test('first setup needs a site administrator', async () => {
   const store = createStore();
   const app = await serve(store);
   try {
-    assert.match(app.server.setupCode, /^[A-Z2-9]{8}$/);
     assert.equal((await app.call('GET', '/rest/api/3/myself')).status, 401);
     const status = await (await app.call('GET', '/rest/tracker/1/session')).json();
     assert.deepEqual([status.authenticated, status.setupRequired], [false, true]);
 
-    const wrongCode = await app.call('POST', '/rest/tracker/1/setup', { body: { setupCode: 'NOPE', email: 'haneul@onestop.local', password: 'longenough' } });
-    assert.equal(wrongCode.status, 403);
-    const notAdmin = await app.call('POST', '/rest/tracker/1/setup', { body: { setupCode: app.server.setupCode, email: 'doyun@onestop.local', password: 'longenough' } });
+    const notAdmin = await app.call('POST', '/rest/tracker/1/setup', { body: { email: 'doyun@onestop.local', password: 'longenough' } });
     assert.equal(notAdmin.status, 400);
-    const short = await app.call('POST', '/rest/tracker/1/setup', { body: { setupCode: app.server.setupCode, email: 'haneul@onestop.local', password: 'short' } });
+    const short = await app.call('POST', '/rest/tracker/1/setup', { body: { email: 'haneul@onestop.local', password: 'short' } });
     assert.equal(short.status, 400);
 
-    const done = await app.call('POST', '/rest/tracker/1/setup', { body: { setupCode: app.server.setupCode.toLowerCase(), email: 'haneul@onestop.local', password: 'longenough' } });
+    const done = await app.call('POST', '/rest/tracker/1/setup', { body: { email: 'haneul@onestop.local', password: 'longenough' } });
     assert.equal(done.status, 201);
     assert.match(done.headers.get('set-cookie'), /tracker_session=.+; Path=\/; HttpOnly; SameSite=Strict/);
-    assert.equal(app.server.setupCode, null);
     const me = await (await app.call('GET', '/rest/api/3/myself', { cookie: cookieOf(done) })).json();
     assert.equal(me.accountId, 'u-haneul');
     assert.ok(!JSON.stringify(store.state).includes('longenough'));
 
-    const again = await app.call('POST', '/rest/tracker/1/setup', { body: { setupCode: 'ANY', email: 'haneul@onestop.local', password: 'longenough' } });
+    const again = await app.call('POST', '/rest/tracker/1/setup', { body: { email: 'haneul@onestop.local', password: 'longenough' } });
     assert.equal(again.status, 409);
   } finally {
     await app.close();
@@ -110,7 +99,6 @@ test('login, temporary passwords, forced change and logout', async () => {
   store.setupAdmin('haneul@onestop.local', 'admin-pass');
   const app = await serve(store);
   try {
-    assert.equal(app.server.setupCode, null);
     const bad = await app.call('POST', '/rest/tracker/1/session', { body: { email: 'haneul@onestop.local', password: 'wrong-pass' } });
     assert.equal(bad.status, 401);
     const admin = cookieOf(await app.call('POST', '/rest/tracker/1/session', { body: { email: 'HANEUL@onestop.local', password: 'admin-pass' } }));
