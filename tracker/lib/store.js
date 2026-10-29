@@ -1358,6 +1358,16 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     return owner;
   }
 
+  function rememberPassword(accountId, passwordHash, sessionVersion) {
+    const owner = user(accountId);
+    if (!owner || !passwordHash) return;
+    if (owner.passwordHash && (owner.sessionVersion ?? 0) >= sessionVersion) return;
+    owner.passwordHash = passwordHash;
+    owner.sessionVersion = sessionVersion;
+    owner.mustChangePassword = false;
+    persist();
+  }
+
   function setupAdmin(email, password) {
     if (!needsSetup()) throw new ApiError(409, ['Setup is already complete. Sign in instead.']);
     const owner = byEmail(email);
@@ -1868,6 +1878,7 @@ export function createStore({ file = null, state = null, now = () => new Date(),
     requireLink,
     authenticate,
     needsSetup,
+    rememberPassword,
     login,
     setupAdmin,
     changePassword,

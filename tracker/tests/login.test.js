@@ -44,12 +44,34 @@ test('one Vercel deployment shares a single setup code', () => {
   const code = sharedSetupCode(env);
   assert.match(code, /^[A-Z2-9]{8}$/);
   assert.equal(sharedSetupCode(env), code);
+  assert.equal(sharedSetupCode({ VERCEL: '1', VERCEL_URL: 'one-stop.vercel.app' }), sharedSetupCode({ VERCEL: '1', VERCEL_URL: 'one-stop.vercel.app' }));
   assert.notEqual(sharedSetupCode({ VERCEL: '1', VERCEL_DEPLOYMENT_ID: 'dpl_other' }), code);
   assert.equal(sharedSetupCode({}), null);
+  assert.equal(sharedSetupCode({ VERCEL: '1' }), null);
   const first = createAppServer(createStore(), { auth: 'login', env });
   const second = createAppServer(createStore(), { auth: 'login', env });
   assert.equal(first.setupCode, code);
   assert.equal(second.setupCode, code);
+});
+
+test('a password set on one Vercel server is accepted by another', async () => {
+  const env = { VERCEL: '1', VERCEL_DEPLOYMENT_ID: 'dpl_same' };
+  const code = sharedSetupCode(env);
+  const first = await serve(createStore(), { env });
+  const second = await serve(createStore(), { env });
+  try {
+    const done = await first.call('POST', '/rest/tracker/1/setup', { body: { setupCode: code, email: 'haneul@onestop.local', password: 'admin123' } });
+    assert.equal(done.status, 201);
+    const cookies = done.headers.getSetCookie().map(item => item.split(';')[0]).join('; ');
+    const login = await second.call('POST', '/rest/tracker/1/session', { body: { email: 'haneul@onestop.local', password: 'admin123' }, cookie: cookies });
+    assert.equal(login.status, 200);
+    const session = login.headers.getSetCookie().map(item => item.split(';')[0]).join('; ');
+    const me = await second.call('GET', '/rest/api/3/myself', { cookie: session });
+    assert.equal(me.status, 200);
+  } finally {
+    await first.close();
+    await second.close();
+  }
 });
 
 test('first setup needs the console code and a site administrator', async () => {

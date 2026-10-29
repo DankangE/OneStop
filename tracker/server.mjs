@@ -8,7 +8,7 @@ import { loadStore, ApiError, issueTypes, priorities, linkTypes } from './lib/st
 import { statuses, statusView, availableTransitions, transitionView } from './lib/workflow.js';
 import { parseBasicAuth } from './lib/access.js';
 import {
-  createSessions, readCookie, sessionCookie, clearedCookie, hostIsLoopback, fromLoopback, sameOrigin, secretMatches, generateSecret, generateCode, sharedSetupCode
+  createSessions, readCookie, sessionCookie, clearedCookie, hostIsLoopback, fromLoopback, sameOrigin, secretMatches, generateSecret, generateCode, sharedSetupCode, deploymentSeed, vaultCookie, vaultName, readVault
 } from './lib/session.js';
 
 const root = process.env.TRACKER_ROOT
@@ -119,7 +119,7 @@ async function readFiles(request, perFile) {
   return Promise.all(files.map(async entry => ({ filename: entry.name, mimeType: entry.type, data: Buffer.from(await entry.arrayBuffer()) })));
 }
 
-export function createRoutes(store, { auth, sessions = createSessions(store), setup = { code: null } }) {
+export function createRoutes(store, { auth, sessions = createSessions(store), setup = { code: null }, deploymentKey = null } = {}) {
   const issuesPage = (issues, url, base, viewer) => {
     const { values, ...meta } = page(issues, url);
     return { ...meta, issues: values.map(issue => store.issueView(issue, base, { viewer })) };
@@ -127,10 +127,14 @@ export function createRoutes(store, { auth, sessions = createSessions(store), se
   const loginOnly = () => {
     if (auth !== 'login') throw new ApiError(400, ['Password sign-in is turned off on this server.']);
   };
-  const signedIn = (request, owner, base, status = 200) => [status, {
-    user: store.userView(owner.accountId, base, { withEmail: true }),
-    mustChangePassword: owner.mustChangePassword === true
-  }, { 'Set-Cookie': sessionCookie(request, sessions.open(owner.accountId)) }];
+  const signedIn = (request, owner, base, status = 200) => {
+    const cookies = [sessionCookie(request, sessions.open(owner.accountId))];
+    if (deploymentKey && owner.passwordHash) cookies.push(vaultCookie(request, owner, deploymentKey));
+    return [status, {
+      user: store.userView(owner.accountId, base, { withEmail: true }),
+      mustChangePassword: owner.mustChangePassword === true
+    }, { 'Set-Cookie': cookies.length > 1 ? cookies : cookies[0] }];
+  };
   return [
     route('GET', '/rest/tracker/1/session', ({ request, base }) => {
       if (auth !== 'login') return [200, { authentication: auth }];
@@ -441,9 +445,10 @@ const passwordChangeRoutes = new Set(['/rest/tracker/1/password', '/rest/api/3/m
 const hasBody = request => Number(request.headers['content-length'] || 0) > 0 || Boolean(request.headers['transfer-encoding']);
 
 export function createAppServer(store, { auth = 'none', automationKey = null, env = process.env } = {}) {
-  const sessions = createSessions(store);
+  const deploymentKey = deploymentSeed(env);
+  const sessions = createSessions(store, { key: deploymentKey });
   const setup = { code: auth === 'login' && store.needsSetup() ? (sharedSetupCode(env) ?? generateCode()) : null };
-  const routes = createRoutes(store, { auth, sessions, setup });
+  const routes = createRoutes(store, { auth, sessions, setup, deploymentKey });
   const server = createServer(async (request, response) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -505,6 +510,10 @@ export function createAppServer(store, { auth = 'none', automationKey = null, en
         } else if (hasBody(request) && !/^application\/json\b/i.test(request.headers['content-type'] || '')) {
           request.resume();
           throw new ApiError(415, ['Send request bodies as application/json.']);
+        }
+        if (deploymentKey) {
+          const saved = readVault(readCookie(request, vaultName), deploymentKey);
+          if (saved) store.rememberPassword(saved.accountId, saved.passwordHash, saved.sessionVersion);
         }
         const { actor, via } = found.anonymous ? { actor: null, via: null } : identify(store, request, { auth, sessions, automationKey });
         if (!found.anonymous && !actor) {
