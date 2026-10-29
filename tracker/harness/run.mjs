@@ -5,6 +5,7 @@ import { join, resolve, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createAppServer } from '../server.mjs';
 import { createStore, loadStore } from '../lib/store.js';
+import { defaults as hubDefaults, reworkNote, writeHubSnapshot } from './hub.mjs';
 
 const tracker = fileURLToPath(new URL('..', import.meta.url));
 const T = { todo: '11', start: '21', review: '31', done: '41', reopen: '51' };
@@ -179,7 +180,7 @@ export async function runPlan(plan, base, { dryRun = false } = {}) {
     } else {
       await reviewer('POST', `/issue/${item.key}/transitions`, {
         transition: { id: T.start },
-        update: { comment: [{ add: { body: `검증이 실패해 진행 중으로 되돌립니다.\n\n${evidence}` } }] }
+        update: { comment: [{ add: { body: `${reworkNote}\n\n${evidence}` } }] }
       });
     }
     results.push({ key: item.key, summary: item.summary, kind, outcome: check.ok ? 'done' : 'failed', ms: check.ms, output: check.output });
@@ -334,6 +335,12 @@ async function main() {
   } finally {
     if (server) await new Promise(done => server.close(done));
     if (store) await store.flush();
+  }
+  try {
+    const { file } = await writeHubSnapshot({ data: options.data, plan: options.plan, out: hubDefaults.out, log });
+    log(`허브 요약: ${file}`);
+  } catch (error) {
+    console.error(`허브 요약을 쓰지 못했습니다: ${error.message}`);
   }
 }
 
