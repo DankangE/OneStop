@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.js",
-    "check": "node --check server.mjs && node --check assets.mjs && node --check api/index.mjs && node --check lib/store.js && node --check lib/sql.js && node --check lib/jql.js && node --check lib/workflow.js && node --check lib/adf.js && node --check lib/access.js && node --check lib/session.js && node --check public/app.js && node --check public/views.js && node --check public/api.js && node --check public/tree.js && node --check public/calendar.js && node --check public/home.js && node --check public/theme.js && node --check harness/run.mjs && node --check scripts/token.mjs",
+    "check": "node --check server.mjs && node --check assets.mjs && node --check api/index.mjs && node --check lib/store.js && node --check lib/sql.js && node --check lib/postgres.js && node --check lib/jql.js && node --check lib/workflow.js && node --check lib/adf.js && node --check lib/access.js && node --check lib/session.js && node --check public/app.js && node --check public/views.js && node --check public/api.js && node --check public/tree.js && node --check public/calendar.js && node --check public/home.js && node --check public/theme.js && node --check harness/run.mjs && node --check scripts/token.mjs",
     "adminer": "UID=$(id -u) GID=$(id -g) docker compose -f docker-compose.adminer.yml up",
     "harness": "node harness/run.mjs",
     "token": "node scripts/token.mjs",

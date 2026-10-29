@@ -32,7 +32,7 @@ let ready;
 function boot() {
   ready ??= (async () => {
     const auth = authMode();
-    const store = await loadStore(dataFile());
+    const store = await loadStore(dataFile(), { env: process.env });
     const server = createAppServer(store, { auth, automationKey: auth === 'login' ? generateSecret() : null });
     if (auth === 'login' && store.needsSetup()) {
       const admins = store.users().filter(user => user.siteAdmin).map(user => user.email).join(', ');

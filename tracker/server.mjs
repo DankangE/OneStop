@@ -568,7 +568,7 @@ export function trackerDataFile(env = process.env) {
 export async function createTracker() {
   const auth = authMode();
   const dataFile = trackerDataFile();
-  const store = await loadStore(dataFile);
+  const store = await loadStore(dataFile, { env: process.env });
   const automationKey = auth === 'login' && !process.env.VERCEL ? generateSecret() : null;
   if (automationKey) {
     const keyFile = join(dirname(resolve(dataFile)), '.automation-key');

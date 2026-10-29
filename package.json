@@ -15,6 +15,7 @@
     "stop": "docker compose down"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "three": "0.186.0"
   }
 }

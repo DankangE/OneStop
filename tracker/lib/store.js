@@ -13,6 +13,7 @@ import {
   hashPassword, passwordMatches, generatePassword, minPasswordLength
 } from './access.js';
 import { isSqliteFile, prepareSql, sqliteBackend } from './sql.js';
+import { connectPostgres, databaseUrl } from './postgres.js';
 
 const assignFields = ['assignee', 'assignees', 'team'];
 
@@ -140,10 +141,10 @@ const byIdOrName = (list, ref, label) => {
   return found;
 };
 
-export function createStore({ file = null, state = null, now = () => new Date(), backend = null } = {}) {
+export function createStore({ file = null, state = null, now = () => new Date(), backend = null, seen: seenOption = null } = {}) {
   let data = normalizeState(state ?? seedState());
   let writing = Promise.resolve();
-  let seen = backend ? backend.stamp() : 0;
+  let seen = seenOption ?? (backend ? backend.stamp() : 0);
 
   const findProject = ref => {
     const key = typeof ref === 'object' ? ref?.key ?? ref?.id : ref;
@@ -226,9 +227,9 @@ export function createStore({ file = null, state = null, now = () => new Date(),
 
   function persist() {
     if (backend) {
-      writing = writing.then(() => {
-        backend.write(data);
-        seen = backend.stamp();
+      writing = writing.then(async () => {
+        await backend.write(data);
+        seen = await backend.stamp();
       }).catch(error => {
         console.error('Tracker state write failed:', error.message);
       });
@@ -265,12 +266,13 @@ export function createStore({ file = null, state = null, now = () => new Date(),
   async function pull() {
     if (!backend) return;
     await writing;
-    const stamp = backend.stamp();
-    if (stamp > seen) {
-      data = normalizeState(backend.read());
+    const stamp = await backend.stamp();
+    if (stamp !== seen) {
+      data = normalizeState(await backend.read() ?? seedState());
       seen = stamp;
-      sealPlainPasswords();
     }
+    if (backend.overlay) await backend.overlay(data);
+    sealPlainPasswords();
   }
 
   function record(issue, actorId, items) {
@@ -1933,6 +1935,21 @@ export function createStore({ file = null, state = null, now = () => new Date(),
 }
 
 export async function loadStore(file, options = {}) {
+  const env = options.env ?? process.env;
+  const neon = options.databaseUrl ? { key: 'DATABASE_URL', url: options.databaseUrl } : (env.VERCEL ? databaseUrl(env) : null);
+  if (neon?.url) {
+    try {
+      const backend = await connectPostgres(neon.url);
+      await backend.ensure();
+      const state = normalizeState(await backend.read() ?? seedState());
+      await backend.overlay(state);
+      console.log(`Tracker data: Neon (${neon.key})`);
+      return createStore({ ...options, file: null, state, backend, seen: await backend.stamp() });
+    } catch (error) {
+      const message = String(error.message ?? error).replace(/postgres(?:ql)?:\/\/\S+/gi, 'postgres://…');
+      throw new Error(`Neon connection failed: ${message}`);
+    }
+  }
   if (isSqliteFile(file)) {
     const prepared = await prepareSql(file);
     const state = normalizeState(prepared.initial ?? seedState());

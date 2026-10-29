@@ -20,7 +20,7 @@ npm run token -- create <email> [이름]   # API 토큰 발급 (서버를 멈춘
 - 첨부파일은 `data/attachments/{id}`에 저장됩니다(테스트처럼 `file`이 없으면 메모리). 화면은 `api.attachmentBlob`으로 받아 object URL로 보여 주므로 모든 인증 모드에서 같은 방식으로 동작합니다.
 - 홈(`#/home`) 계산은 DOM이 없는 `public/home.js`에 있고 `tests/people-files.test.js`로 검증합니다.
 - 받은 알림은 담당이 새로 붙거나 내 이슈에 댓글이 달릴 때 생깁니다. 본인 행동은 알리지 않습니다. `tests/notification.test.js`로 검증합니다.
-- Vercel은 프로젝트 루트의 `server.mjs`를 함수로 잡고, 모듈이 평가될 때 `listen()`을 호출해야 요청을 넘깁니다. 저장소 루트에서 `VERCEL`이 설정되면 비행 앱 대신 이 트래커를 띄웁니다. 그때 이슈 데이터는 임시 디렉터리의 JSON 파일입니다. 비밀번호와 로그인 쿠키는 배포 식별자로 서명해 다른 서버도 확인합니다. 로컬 데이터는 `data/tracker.sqlite`에 그대로 둡니다. GitHub Actions `.github/workflows/tracker.yml`이 `tracker/**` 변경을 검사한 뒤, `VERCEL_TOKEN`·`VERCEL_ORG_ID`·`VERCEL_PROJECT_ID`가 있을 때만 `main`을 배포합니다.
+- Vercel은 프로젝트 루트의 `server.mjs`를 함수로 잡고, 모듈이 평가될 때 `listen()`을 호출해야 요청을 넘깁니다. 저장소 루트에서 `VERCEL`이 설정되면 비행 앱 대신 이 트래커를 띄웁니다. `DATABASE_URL`이나 `STORAGE_URL`처럼 Postgres 주소가 있으면 Neon을 읽고, 없으면 임시 디렉터리의 JSON 파일입니다. Neon의 `public.users`에 넣은 `email`과 `password_hash`(또는 `password`)가 로그인을 결정합니다. 비밀번호와 로그인 쿠키는 배포 식별자로 서명해 다른 서버도 확인합니다. 로컬 데이터는 `data/tracker.sqlite`에 그대로 둡니다. GitHub Actions `.github/workflows/tracker.yml`이 `tracker/**` 변경을 검사한 뒤, `VERCEL_TOKEN`·`VERCEL_ORG_ID`·`VERCEL_PROJECT_ID`가 있을 때만 `main`을 배포합니다.
 
 ## 프로젝트
 
