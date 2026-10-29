@@ -7,13 +7,15 @@ Jira의 공개 REST v3 명세와 Jira Software 애자일 API 명세를 클린룸
 ```bash
 npm start            # http://127.0.0.1:7180 (PORT, HOST, TRACKER_DATA, TRACKER_AUTH 환경 변수)
 npm run verify       # 문법 검사 + 단위/API 테스트 + 하네스 smoke
-npm run harness      # plan.json의 이슈 → 티켓 → 처리 실행, reports/latest.md 생성
+npm run harness      # plan.json의 이슈 → 티켓 → 처리 실행, reports/latest.md와 ../docs/harness-hub.json 생성
+npm run hub          # 원장을 읽기만 해서 ../docs/harness-hub.json(Harness Hub 요약)만 다시 만듦
 npm run token -- create <email> [이름]   # API 토큰 발급 (서버를 멈춘 상태에서)
 ```
 
 - 데이터 파일 기본값은 `data/tracker.sqlite`입니다. 처음 실행할 때 같은 폴더의 `db.json`이 있으면 그 내용을 가져옵니다. `npm run adminer`는 Adminer를 http://127.0.0.1:8088 에 띄웁니다. 시스템은 SQLite 3, 사용자 `admin`, 비밀번호 `onestop`, 데이터베이스 `/db/tracker.sqlite`입니다. 이슈 내용은 `issues` 테이블을 고치고, `issue_list`는 이름만 보여주는 조회용입니다.
 - `TRACKER_AUTH` 기본값은 `login`(이메일·비밀번호 + 세션 쿠키)입니다. `basic`은 API 토큰만, `none`은 루프백 전용 테스트 모드입니다.
 - 처음 실행하면 비밀번호가 아무에게도 없으므로 서버 콘솔에 설정 코드가 찍힙니다. 사이트 관리자가 그 코드로 첫 비밀번호를 정하고, 다른 사람은 멤버 화면의 `비밀번호 재설정`으로 임시 비밀번호를 받습니다.
+- `docs/harness-hub.json`은 Harness Hub가 읽는 요약(schemaVersion 1)이며 Git에서 제외합니다. 티켓은 plan.json의 tickets, 완료는 원장 상태 범주 done, 착수 후보는 To Do이면서 막는 티켓이 모두 끝난 것, 불일치는 원장에 `plan-<id>` 이슈가 없는 계획 티켓, 되돌림은 `hub.mjs`의 `reworkNote` 댓글 수입니다. 열린 PR은 `gh`로 조회하고, 실패하면 완료·착수·불일치를 비웁니다. 허브는 24시간이 지난 요약을 갱신 필요로 표시합니다.
 - 하네스를 `--url`로 실행 중인 서버에 붙이면 데이터 폴더의 `.automation-key`를 읽어 `X-Tracker-Automation-Key`로 보냅니다. `--url` 없이 실행하면 서버 안에서 `none` 모드로 돕니다. 브라우저 화면은 `X-Tracker-User`를 `none` 모드에서만 보냅니다.
 - 쓰기 요청은 `Content-Type: application/json`이어야 하고(아니면 415), 다른 Origin은 403입니다. 예외는 첨부 업로드(`multipart/form-data` + `X-Atlassian-Token: no-check`)뿐입니다.
 - 사용자는 사이트 관리자가 `#/users`에서 만들고 비활성화합니다. 비활성 판단은 store의 `can()`에 들어 있으니 권한 검사를 우회하는 새 코드를 만들지 마세요.
@@ -61,5 +63,5 @@ npm run token -- create <email> [이름]   # API 토큰 발급 (서버를 멈춘
 - `api/index.mjs`: Vercel의 `/api` 함수로 요청을 넘기는 보조 진입점. 배포의 기본 진입점은 `server.mjs`의 `listen()`이다.
 - `scripts/token.mjs`: 토큰 발급, 목록, 폐기 CLI
 - `public/`: 프로젝트 선택, 보드(진행 중 스프린트), 백로그(스프린트 계획, 스크럼 보드만), 목록(JQL), 멤버, 상세 패널, 로그인, 새 프로젝트·API 토큰 대화상자
-- `harness/`: 계획 실행기(`run.mjs`), 환경 점검(`checks.mjs`), 계획(`plan.json`)
+- `harness/`: 계획 실행기(`run.mjs`), Harness Hub 요약(`hub.mjs`), 환경 점검(`checks.mjs`), 계획(`plan.json`)
 - `spec/jira-rest-v3.md`: 출처가 표시된 동작 명세
