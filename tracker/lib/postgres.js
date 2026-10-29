@@ -51,10 +51,12 @@ export function mergeDatabaseUsers(state, rows) {
     if (incoming.displayName) existing.displayName = incoming.displayName;
     if (incoming.siteAdmin) existing.siteAdmin = true;
     const next = incoming.passwordHash;
+    const hashed = existing.passwordHash?.startsWith('scrypt$');
     if (next === existing.passwordHash) continue;
-    if (existing.passwordHash?.startsWith('scrypt$') && passwordMatches(next, existing.passwordHash)) continue;
+    if (hashed && passwordMatches(next, existing.passwordHash)) continue;
+    if (hashed && existing.mustChangePassword !== true && incoming.mustChangePassword !== true) continue;
     existing.passwordHash = next;
-    if (incoming.mustChangePassword) existing.mustChangePassword = true;
+    existing.mustChangePassword = true;
     existing.sessionVersion = (existing.sessionVersion ?? 0) + 1;
   }
   return state;

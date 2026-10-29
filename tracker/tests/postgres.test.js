@@ -39,6 +39,26 @@ test('the same plain password is not applied again after it was hashed', () => {
   assert.equal(store.login('haneul@onestop.local', 'admin123').accountId, 'u-haneul');
 });
 
+test('a password the person already set is not overwritten from the database', () => {
+  const state = seedState();
+  mergeDatabaseUsers(state, [{ email: 'haneul@onestop.local', password_hash: 'admin123' }]);
+  const store = createStore({ state });
+  store.changePassword('u-haneul', 'admin123', 'own-secret');
+  mergeDatabaseUsers(store.state, [{ email: 'haneul@onestop.local', password_hash: 'admin123' }]);
+  assert.equal(store.accountState('u-haneul').mustChangePassword, false);
+  assert.equal(store.login('haneul@onestop.local', 'own-secret').accountId, 'u-haneul');
+});
+
+test('a new temporary password in the database is used until the person changes it', () => {
+  const state = seedState();
+  mergeDatabaseUsers(state, [{ email: 'haneul@onestop.local', password_hash: 'admin123' }]);
+  const store = createStore({ state });
+  mergeDatabaseUsers(store.state, [{ email: 'haneul@onestop.local', password_hash: 'onestop!12' }]);
+  const again = createStore({ state: store.state });
+  const owner = again.login('haneul@onestop.local', 'onestop!12');
+  assert.equal(owner.mustChangePassword, true);
+});
+
 test('a changed database password is read on the next pull', async () => {
   let document = null;
   let users = [{ email: 'haneul@onestop.local', password_hash: 'admin123' }];

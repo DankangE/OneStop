@@ -164,7 +164,7 @@
   - `DELETE /session` (익명): 세션을 지우고 쿠키를 비웁니다. `204`.
   - `POST /setup` `{email, password}` (익명): 아무도 비밀번호가 없을 때만 됩니다. 사이트 관리자 이메일만 받습니다. 이미 끝났으면 `409`. 설정 코드는 받지 않습니다.
   - 내부 정의: `users.password_hash`에 `scrypt$`로 시작하지 않는 임시 비밀번호를 직접 넣으면, 다음 읽기에서 해시로 바꾸고 `mustChangePassword`를 켭니다. 그 비밀번호로 로그인한 사람은 새 비밀번호를 정해야 합니다.
-  - 내부 정의: Vercel에서 Postgres 연결 문자열이 있으면 Neon을 저장소로 씁니다. 드라이버는 `@neondatabase/serverless`의 `neon(url)`입니다 (context7 `/llmstxt/neon_llms_txt`, Connect from any app). `public.users`의 `email`과 `password_hash`(또는 `password`)를 로그인 계정에 덮어씁니다. 연결 문자열이 없으면 임시 JSON을 씁니다.
+  - 내부 정의: Vercel에서 Postgres 연결 문자열이 있으면 Neon을 저장소로 씁니다. 드라이버는 `@neondatabase/serverless`의 `neon(url)`입니다 (context7 `/llmstxt/neon_llms_txt`, Connect from any app). `public.users`의 `email`과 `password_hash`(또는 `password`)는 아직 비밀번호가 없거나 임시 비밀번호인 계정에만 덮어씁니다. 본인이 비밀번호를 바꾼 뒤에는 Neon 값이 다시 덮지 않습니다. `must_change_password`가 켜져 있으면 관리자 재설정으로 다시 덮습니다. 연결 문자열이 없으면 임시 JSON을 씁니다.
   - `PUT /password` `{current, next}`: 본인 비밀번호 변경. 세션으로 호출하면 새 쿠키를 줍니다.
   - `POST /user/{accountId}/password/reset`: 사이트 관리자만. `{temporaryPassword}`(12자)를 한 번만 돌려주고, 대상은 첫 로그인 때 비밀번호를 바꿔야 합니다.
 - 비밀번호는 8~200자이며 `scrypt$salt$hash`로만 저장합니다. 비밀번호를 바꾸거나 재설정하면 `sessionVersion`이 올라가 그 사람의 기존 세션이 모두 끊깁니다.
